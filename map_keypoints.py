@@ -87,7 +87,7 @@ ten_meter_line = [[195, 330], [195, 805]]
 direction = "left"  # direction towards
 
 # init frame counters
-gnd_trigger = False
+start_trigger = False
 five_meter_trigger = False
 five_meter_counter = 0
 ten_meter_counter = 0
@@ -132,16 +132,16 @@ for filename in os.listdir(folder_path):
         # print(keypoints_dict)
 
         # detect if foot lifted
-        if not gnd_trigger and not five_meter_trigger:
+        if not start_trigger and not five_meter_trigger:
             if is_above_line(keypoints_dict[0][19], gnd_line):
                 print("LBigToe off ground", frame_number)
-                gnd_trigger = True
+                start_trigger = True
             elif is_above_line(keypoints_dict[0][22], gnd_line):
                 print("RBigToe off ground", frame_number)
-                gnd_trigger = True
+                start_trigger = True
 
         # detect if cross line
-        if direction == "left" and gnd_trigger:
+        if direction == "left" and start_trigger:
             ten_meter_counter += 1
             if not five_meter_trigger:
                 five_meter_counter += 1
@@ -150,9 +150,9 @@ for filename in os.listdir(folder_path):
                 five_meter_trigger = True
             elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
                 print("ten meters", ten_meter_counter)
-                gnd_trigger = False
+                start_trigger = False
 
-        elif direction == "right" and gnd_trigger:
+        elif direction == "right" and start_trigger:
             ten_meter_counter += 1
             if not five_meter_trigger:
                 five_meter_counter += 1
@@ -161,7 +161,7 @@ for filename in os.listdir(folder_path):
                 five_meter_trigger = True
             elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
                 print("ten meters", ten_meter_counter)
-                gnd_trigger = False
+                start_trigger = False
 
         # # draw area on frame
         # cv2.polylines(frame, [five_meter], isClosed=True, color=(0, 255, 0), thickness=2)
