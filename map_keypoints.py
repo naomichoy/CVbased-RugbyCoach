@@ -131,6 +131,7 @@ for filename in os.listdir(folder_path):
 
         # print(keypoints_dict)
 
+        # detect if foot lifted
         if not gnd_trigger and not five_meter_trigger:
             if is_above_line(keypoints_dict[0][19], gnd_line):
                 print("LBigToe off ground", frame_number)
@@ -139,6 +140,7 @@ for filename in os.listdir(folder_path):
                 print("RBigToe off ground", frame_number)
                 gnd_trigger = True
 
+        # detect if cross line
         if direction == "left" and gnd_trigger:
             ten_meter_counter += 1
             if not five_meter_trigger:
