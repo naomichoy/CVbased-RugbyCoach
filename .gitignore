@@ -152,15 +152,15 @@ cython_debug/
 .idea/
 
 # project
-.bin/
-.3rdparty/
-.examples/
-.frames/
-.include/
-.lib/
-.models/
-.output/
-.python/
+bin/
+3rdparty/
+examples/
+frames/
+include/
+lib/
+models/
+output/
+python/
 
 
 
