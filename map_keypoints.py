@@ -105,75 +105,77 @@ for filename in os.listdir(folder_path):
         json_data = read_json_file(os.path.join(folder_path, filename))
         try:
             keypoints = json_data['people'][0]['pose_keypoints_2d']
+
+            # JSON read check
+            # print(len(keypoints))   # 75 -> 25 keypoints x3, x, y, conf
+
+            # read frame
+            frame_path = f"frames/s2/frame_{frame_number}.jpg"
+            frame = cv2.imread(frame_path)
+            # print(frame.shape)
+
+            # extract keypoints to keypoints_dict for easier interpretation
+            keypoints_dict = [{0: ""}]
+            for i in range(0, len(keypoints), 3):
+                # extract keypoints
+                keypoint_num = int(i/3)
+                point_to_draw = (round(keypoints[i]), round(keypoints[i+1]))
+                # print(keypoint_num, point_to_draw)
+                keypoints_dict[0][keypoint_num] = point_to_draw
+
+                # draw on points on frame
+                cv2.circle(frame, point_to_draw, 2, (0, 255, 0), 2)
+
+            # print(keypoints_dict)
+
+            # detect if foot lifted
+            if not start_trigger and not five_meter_trigger:
+                if is_above_line(keypoints_dict[0][19], gnd_line):
+                    print("LBigToe off ground", frame_number)
+                    start_trigger = True
+                elif is_above_line(keypoints_dict[0][22], gnd_line):
+                    print("RBigToe off ground", frame_number)
+                    start_trigger = True
+
+            # detect if cross line
+            if direction == "left" and start_trigger:
+                ten_meter_counter += 1
+                if not five_meter_trigger:
+                    five_meter_counter += 1
+                if is_left_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
+                    print("five meters", five_meter_counter)
+                    five_meter_trigger = True
+                elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
+                    print("ten meters", ten_meter_counter)
+                    start_trigger = False
+
+            elif direction == "right" and start_trigger:
+                ten_meter_counter += 1
+                if not five_meter_trigger:
+                    five_meter_counter += 1
+                if is_right_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
+                    print("five meters", five_meter_counter)
+                    five_meter_trigger = True
+                elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
+                    print("ten meters", ten_meter_counter)
+                    start_trigger = False
+
         except IndexError:
-            # print(json_data)
-            continue
+            # print("no person detected in this frame", json_data)
+            pass
 
-        # JSON read check
-        # print(len(keypoints))   # 75 -> 25 keypoints x3, x, y, conf
+        finally:
+            # # draw area on frame
+            # cv2.polylines(frame, [five_meter], isClosed=True, color=(0, 255, 0), thickness=2)
 
-        # read frame
-        frame_path = f"frames/s2/frame_{frame_number}.jpg"
-        frame = cv2.imread(frame_path)
-        # print(frame.shape)
+            # draw line on frame
+            cv2.line(frame, gnd_line[0], gnd_line[1], (0, 0, 255), 2)
+            cv2.line(frame, five_meter_line[0], five_meter_line[1], (0, 0, 255), 2)
+            cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
+            cv2.imshow('frame', frame)
 
-        # extract keypoints to keypoints_dict for easier interpretation
-        keypoints_dict = [{0: ""}]
-        for i in range(0, len(keypoints), 3):
-            # extract keypoints
-            keypoint_num = int(i/3)
-            point_to_draw = (round(keypoints[i]), round(keypoints[i+1]))
-            # print(keypoint_num, point_to_draw)
-            keypoints_dict[0][keypoint_num] = point_to_draw
-
-            # draw on points on frame
-            cv2.circle(frame, point_to_draw, 2, (0, 255, 0), 2)
-
-        # print(keypoints_dict)
-
-        # detect if foot lifted
-        if not start_trigger and not five_meter_trigger:
-            if is_above_line(keypoints_dict[0][19], gnd_line):
-                print("LBigToe off ground", frame_number)
-                start_trigger = True
-            elif is_above_line(keypoints_dict[0][22], gnd_line):
-                print("RBigToe off ground", frame_number)
-                start_trigger = True
-
-        # detect if cross line
-        if direction == "left" and start_trigger:
-            ten_meter_counter += 1
-            if not five_meter_trigger:
-                five_meter_counter += 1
-            if is_left_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                print("five meters", five_meter_counter)
-                five_meter_trigger = True
-            elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
-                print("ten meters", ten_meter_counter)
-                start_trigger = False
-
-        elif direction == "right" and start_trigger:
-            ten_meter_counter += 1
-            if not five_meter_trigger:
-                five_meter_counter += 1
-            if is_right_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                print("five meters", five_meter_counter)
-                five_meter_trigger = True
-            elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
-                print("ten meters", ten_meter_counter)
-                start_trigger = False
-
-        # # draw area on frame
-        # cv2.polylines(frame, [five_meter], isClosed=True, color=(0, 255, 0), thickness=2)
-
-        # draw line on frame
-        cv2.line(frame, gnd_line[0], gnd_line[1], (0, 0, 255), 2)
-        cv2.line(frame, five_meter_line[0], five_meter_line[1], (0, 0, 255), 2)
-        cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
-        cv2.imshow('frame', frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
 # cv2.imshow(f"{frame_number}", frame)
 # cv2.waitKey(0)
