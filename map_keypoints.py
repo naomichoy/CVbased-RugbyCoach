@@ -20,7 +20,7 @@ def is_above_line(point, line):
     x1, y1 = line[0]
     x2, y2 = line[1]
     x, y = point
-    offset = 3
+    offset = 15
 
     # Calculate the y-coordinate of the line at the given x-coordinate
     line_y = ((y2 - y1) / (x2 - x1)) * (x - x1) + y1
@@ -65,6 +65,9 @@ def is_right_of_line(point, line):
 
 video_name = "s2"
 folder_path = f"output/{video_name}"
+config_file_path = f"config/{video_name}.json"
+output_video = f"output_video/{video_name}.avi"
+output_frames = f"output_frames/{video_name}"
 
 # # define detection area
 # five_meter = [[965, 610], [965, 715], [1860, 685], [1580, 615]]
@@ -81,10 +84,16 @@ folder_path = f"output/{video_name}"
 # cv2.waitKey(0)
 
 # define lines
-gnd_line = [[1894, 644], [1667, 653]]
-five_meter_line = [[960, 330], [960, 805]]
-ten_meter_line = [[195, 330], [195, 805]]
-direction = "left"  # direction towards
+# gnd_line = [[1894, 644], [1667, 653]]
+# five_meter_line = [[960, 330], [960, 805]]
+# ten_meter_line = [[195, 330], [195, 805]]
+# direction = "left"  # direction towards
+with open(config_file_path, 'r') as json_file:
+    data = json.load(json_file)
+    gnd_line = data['gnd_line']
+    five_meter_line = data['five_meter_line']
+    ten_meter_line = data['ten_meter_line']
+    direction = "left"  # direction towards
 
 # init frame counters
 start_trigger = False
@@ -92,6 +101,15 @@ five_meter_trigger = False
 five_meter_counter = 0
 ten_meter_counter = 0
 
+cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+# get frame dimension
+frame_path = "frames/s2/frame_000000000000.jpg"
+frame = cv2.imread(frame_path)
+height, width, _ = frame.shape
+video_writer = cv2.VideoWriter(output_video,
+                               cv2.VideoWriter_fourcc(*'XVID'),
+                               30,
+                               (width, height))
 
 for filename in os.listdir(folder_path):
     # Check if the path is a file
@@ -103,16 +121,17 @@ for filename in os.listdir(folder_path):
         # json_file_path = f"output/{video_name}/{video_name}_{filled_number}_keypoints.json"
         # json_data = read_json_file(json_file_path)
         json_data = read_json_file(os.path.join(folder_path, filename))
+
+        # read frame
+        frame_path = f"frames/s2/frame_{frame_number}.jpg"
+        frame = cv2.imread(frame_path)
+        # print(frame.shape)
+
         try:
             keypoints = json_data['people'][0]['pose_keypoints_2d']
 
             # JSON read check
             # print(len(keypoints))   # 75 -> 25 keypoints x3, x, y, conf
-
-            # read frame
-            frame_path = f"frames/s2/frame_{frame_number}.jpg"
-            frame = cv2.imread(frame_path)
-            # print(frame.shape)
 
             # extract keypoints to keypoints_dict for easier interpretation
             keypoints_dict = [{0: ""}]
@@ -165,6 +184,10 @@ for filename in os.listdir(folder_path):
             pass
 
         finally:
+            # frame number
+            cv2.putText(frame, str(frame_number), (0, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (0, 0, 255), 2, cv2.LINE_AA)
+
             # # draw area on frame
             # cv2.polylines(frame, [five_meter], isClosed=True, color=(0, 255, 0), thickness=2)
 
@@ -173,6 +196,8 @@ for filename in os.listdir(folder_path):
             cv2.line(frame, five_meter_line[0], five_meter_line[1], (0, 0, 255), 2)
             cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
             cv2.imshow('frame', frame)
+            video_writer.write(frame)
+            cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

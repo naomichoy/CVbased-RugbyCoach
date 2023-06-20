@@ -162,6 +162,8 @@ models/
 output/
 python/
 *.avi
+output_video/
+output_frames/
 
 
 
