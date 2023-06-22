@@ -16,11 +16,11 @@ def read_json_file(file_path):
 #     cv2.fillPoly(mask, [polygon], color=(255, 255, 255))
 #     return mask
 
-def is_above_line(point, line):
+def is_above_line(point, line, offset):
     x1, y1 = line[0]
     x2, y2 = line[1]
     x, y = point
-    offset = 15
+    # offset = 15
 
     # Calculate the y-coordinate of the line at the given x-coordinate
     line_y = ((y2 - y1) / (x2 - x1)) * (x - x1) + y1
@@ -63,6 +63,20 @@ def is_right_of_line(point, line):
         return False
 
 
+class stepData():
+    def __init__(self):
+        self.step_start_coord = ()
+        self.step_end_coord = ()
+        self.step_contact_counter = 0
+        self.step_flight_counter = 0
+
+    def __str__(self):
+        return f'start: {self.step_start_coord}, ' \
+                f'end: {self.step_end_coord},' \
+               f'contact: {self.step_contact_counter}, ' \
+               f'flight: {self.step_flight_counter}'
+
+
 video_name = "s2"
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
@@ -101,13 +115,13 @@ start_trigger = False
 five_meter_trigger = False
 five_meter_counter = 0
 ten_meter_counter = 0
+perf_offset = 15
 
 # Spatiotemporal variables
 start_foot = ""     # back foot
 step_start = False
-step_length_counter = 0
-step_contact_counter = 0
-step_flight_counter = 0
+steps = []
+step_offset = 10
 
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 # get frame dimension
@@ -161,26 +175,34 @@ for filename in os.listdir(json_folder_path):
 
             # detect if foot lifted
             if not start_trigger and not five_meter_trigger:
-                if is_above_line(keypoints_dict[0][19], gnd_line):
+                if is_above_line(keypoints_dict[0][19], gnd_line, perf_offset):
                     print("LBigToe off ground", frame_number)
                     start_trigger = True
                     start_foot = "left"
-                elif is_above_line(keypoints_dict[0][22], gnd_line):
+                elif is_above_line(keypoints_dict[0][22], gnd_line, perf_offset):
                     print("RBigToe off ground", frame_number)
                     start_trigger = True
                     start_foot = "right"
 
 
-            # detect if cross line
+            # Performance variables: detect if cross line
             if direction == "left" and start_trigger:
                 ten_meter_counter += 1
                 if not five_meter_trigger:
                     five_meter_counter += 1
                 if is_left_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                    print("five meters", five_meter_counter)
+                    txt = f"five meters {five_meter_counter}"
+                    print(txt)
+                    cv2.putText(frame, txt, (0, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0, 0, 255), 2, cv2.LINE_AA)
                     five_meter_trigger = True
                 elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
-                    print("ten meters", ten_meter_counter)
+                    txt = f'ten meters {ten_meter_counter}'
+                    print(txt)
+                    cv2.putText(frame, txt, (0, 90),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0, 0, 255), 2, cv2.LINE_AA)
                     start_trigger = False
 
             elif direction == "right" and start_trigger:
@@ -188,38 +210,68 @@ for filename in os.listdir(json_folder_path):
                 if not five_meter_trigger:
                     five_meter_counter += 1
                 if is_right_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                    print("five meters", five_meter_counter)
+                    txt = f"five meters {five_meter_counter}"
+                    print(txt)
+                    cv2.putText(frame, txt, (0, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0, 0, 255), 2, cv2.LINE_AA)
                     five_meter_trigger = True
                 elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
-                    print("ten meters", ten_meter_counter)
+                    txt = f'ten meters {ten_meter_counter}'
+                    print(txt)
+                    cv2.putText(frame, txt, (0, 90),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0, 0, 255), 2, cv2.LINE_AA)
                     start_trigger = False
 
 
             if start_trigger:
                 if start_foot == "left":
-                    if not is_above_line(keypoints_dict[0][19], gnd_line):  # RBigToe
-                        step_start = True
-                        step_length_counter += 1
-                        step_contact_counter += 1
-                        print("left", frame_number)
-                    elif is_above_line(keypoints_dict[0][22], gnd_line) and step_start:  # both feet above ground
-                        step_flight_counter += 1
-                        print("flying", frame_number)
+                    if not is_above_line(keypoints_dict[0][19], gnd_line, step_offset):  # LBigToe on line
+                        if not step_start:
+                            step_start = True
+                            step = stepData()
+                            step.step_contact_counter += 1
+                            step.step_start_coord = keypoints_dict[0][19]
+                            print("right", frame_number)
+                        else:
+                            # if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):
+                            step.step_contact_counter += 1
+                            print("contact", frame_number)
+                    elif is_above_line(keypoints_dict[0][22], gnd_line, step_offset) and step_start:
+                        if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):  # both feet above gnd
+                            step.step_flight_counter += 1
+                            print("flight", frame_number)
                     elif step_start:
-                        print("left foot", step_length_counter, step_contact_counter, step_flight_counter)
+                        step.step_end_coord = keypoints_dict[0][22]
+                        print(str(step))
+                        steps.append(step)
+                        # step_start = False
                         start_foot = "right"
+
                 elif start_foot == "right":
-                    if not is_above_line(keypoints_dict[0][22], gnd_line):  # RBigToe
-                        step_start = True
-                        step_length_counter += 1
-                        step_contact_counter += 1
-                        print("right", frame_number)
-                    elif is_above_line(keypoints_dict[0][19], gnd_line) and step_start:    # both feet above ground
-                        step_flight_counter += 1
-                        print("flying", frame_number)
+                    if not is_above_line(keypoints_dict[0][22], gnd_line, step_offset):      # RBigToe on line
+                        if not step_start:
+                            step_start = True
+                            step = stepData()
+                            step.step_contact_counter += 1
+                            step.step_start_coord = keypoints_dict[0][22]
+                            print("right", frame_number)
+                        else:
+                            # if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):
+                            step.step_contact_counter += 1
+                            print("contact", frame_number)
+                    elif is_above_line(keypoints_dict[0][19], gnd_line, step_offset) and step_start:
+                        if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):    # both feet above gnd
+                            step.step_flight_counter += 1
+                            print("flight", frame_number)
                     elif step_start:
-                        print("right foot", step_length_counter, step_contact_counter, step_flight_counter)
+                        step.step_end_coord = keypoints_dict[0][19]
+                        print(str(step))
+                        steps.append(step)
+                        # step_start = False
                         start_foot = "left"
+
 
 
 
@@ -242,7 +294,12 @@ for filename in os.listdir(json_folder_path):
             cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
             cv2.imshow('frame', frame)
             # video_writer.write(frame)
-            # cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)
+            cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)
+
+            # if int(frame_number) > 600 and int(frame_number) < 960:
+            #     cv2.waitKey(0)
+            # elif cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
