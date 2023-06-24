@@ -1,3 +1,4 @@
+import os
 import cv2
 from PIL import Image
 
@@ -24,13 +25,17 @@ def extract_frames(video_path, output_path):
     # Release the video file
     video.release()
 
-video_name = "s2"
+
+video_name = "s4.mov"       # with extension name
 
 # Provide the path to the video file
-video_path = f"examples/media/{video_name}.mp4"
+video_path = f"examples/media/{video_name}"
 
 # Provide the path to the output directory where the frames will be saved
 output_path = f"frames/{video_name}"
+
+if not os.path.exists(output_path):
+    os.makedirs(output_path)
 
 # Call the function to extract frames
 extract_frames(video_path, output_path)
