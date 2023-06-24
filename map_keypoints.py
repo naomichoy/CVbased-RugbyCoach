@@ -63,7 +63,7 @@ def is_right_of_line(point, line):
         return False
 
 
-video_name = "s2"
+video_name = "s4"   # without extension
 folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}.avi"
@@ -103,7 +103,7 @@ ten_meter_counter = 0
 
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 # get frame dimension
-frame_path = "frames/s2/frame_000000000000.jpg"
+frame_path = f"frames/{video_name}/frame_000000000000.jpg"
 frame = cv2.imread(frame_path)
 height, width, _ = frame.shape
 video_writer = cv2.VideoWriter(output_video,
@@ -123,7 +123,7 @@ for filename in os.listdir(folder_path):
         json_data = read_json_file(os.path.join(folder_path, filename))
 
         # read frame
-        frame_path = f"frames/s2/frame_{frame_number}.jpg"
+        frame_path = f"frames/{video_name}/frame_{frame_number}.jpg"
         frame = cv2.imread(frame_path)
         # print(frame.shape)
 
@@ -144,6 +144,9 @@ for filename in os.listdir(folder_path):
 
                 # draw on points on frame
                 cv2.circle(frame, point_to_draw, 2, (0, 255, 0), 2)
+                if keypoint_num == 19 or keypoint_num == 22:    # indicating which toe detected
+                    cv2.putText(frame, str(keypoint_num), point_to_draw, cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0, 255, 0), 2, cv2.LINE_AA)
 
             # print(keypoints_dict)
 
