@@ -32,7 +32,8 @@ video_name = "s4.mov"       # with extension name
 video_path = f"examples/media/{video_name}"
 
 # Provide the path to the output directory where the frames will be saved
-output_path = f"frames/{video_name}"
+output_path = f"frames/{video_name.split('.')[0]}"
+print("output frames to", output_path)
 
 if not os.path.exists(output_path):
     os.makedirs(output_path)

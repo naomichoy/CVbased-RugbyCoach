@@ -23,7 +23,8 @@ def mousePoint(event,x,y,flags,params):
         cv2.putText(frame, end_txt, (0, 30 * len(instruction_text) + 30), cv2.FONT_HERSHEY_SIMPLEX,
                     1, (0, 0, 255), 2, cv2.LINE_AA)
 
-video_name = "s2"
+
+video_name = "s4"   # without extension
 frame_folder_path = f"frames/{video_name}"
 filename = "frame_000000000000.jpg"
 file_path = os.path.join(frame_folder_path, filename)

@@ -164,6 +164,7 @@ python/
 *.avi
 output_video/
 output_frames/
+logs/
 
 
 
