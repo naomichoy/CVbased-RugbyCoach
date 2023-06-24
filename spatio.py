@@ -62,8 +62,16 @@ def is_right_of_line(point, line):
     else:
         return False
 
+def printSteps(steps):
+    for i, s in enumerate(steps):
+        print(i, s)
 
 class stepData():
+    step_start_coord = ()
+    step_end_coord = ()
+    step_contact_counter = 0
+    step_flight_counter = 0
+
     def __init__(self):
         self.step_start_coord = ()
         self.step_end_coord = ()
@@ -111,6 +119,7 @@ with open(config_file_path, 'r') as json_file:
 
 ## init frame counters
 # Performance variables: time to 5m and 10m
+start_frame = 0
 start_trigger = False
 five_meter_trigger = False
 five_meter_counter = 0
@@ -121,9 +130,10 @@ perf_offset = 15
 start_foot = ""     # back foot
 step_start = False
 steps = []
-step_offset = 10
+step_offset = 7
 
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+
 # get frame dimension
 frame_path = "frames/s2/frame_000000000000.jpg"
 frame = cv2.imread(frame_path)
@@ -176,11 +186,13 @@ for filename in os.listdir(json_folder_path):
             # detect if foot lifted
             if not start_trigger and not five_meter_trigger:
                 if is_above_line(keypoints_dict[0][19], gnd_line, perf_offset):
-                    print("LBigToe off ground", frame_number)
+                    print(f"LBigToe off ground {frame_number}")
+                    start_frame = frame_number
                     start_trigger = True
                     start_foot = "left"
                 elif is_above_line(keypoints_dict[0][22], gnd_line, perf_offset):
-                    print("RBigToe off ground", frame_number)
+                    print(f"RBigToe off ground {frame_number}")
+                    start_frame = frame_number
                     start_trigger = True
                     start_foot = "right"
 
@@ -191,18 +203,10 @@ for filename in os.listdir(json_folder_path):
                 if not five_meter_trigger:
                     five_meter_counter += 1
                 if is_left_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                    txt = f"five meters {five_meter_counter}"
-                    print(txt)
-                    cv2.putText(frame, txt, (0, 60),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (0, 0, 255), 2, cv2.LINE_AA)
+                    print(f"five meters {five_meter_counter}")
                     five_meter_trigger = True
                 elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
-                    txt = f'ten meters {ten_meter_counter}'
-                    print(txt)
-                    cv2.putText(frame, txt, (0, 90),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (0, 0, 255), 2, cv2.LINE_AA)
+                    print(f'ten meters {ten_meter_counter}')
                     start_trigger = False
 
             elif direction == "right" and start_trigger:
@@ -210,22 +214,15 @@ for filename in os.listdir(json_folder_path):
                 if not five_meter_trigger:
                     five_meter_counter += 1
                 if is_right_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                    txt = f"five meters {five_meter_counter}"
-                    print(txt)
-                    cv2.putText(frame, txt, (0, 60),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (0, 0, 255), 2, cv2.LINE_AA)
+                    print(f"five meters {five_meter_counter}")
                     five_meter_trigger = True
                 elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
-                    txt = f'ten meters {ten_meter_counter}'
-                    print(txt)
-                    cv2.putText(frame, txt, (0, 90),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (0, 0, 255), 2, cv2.LINE_AA)
+                    print(f'ten meters {ten_meter_counter}')
                     start_trigger = False
 
 
-            if start_trigger:
+            # spatio varaibles
+            if start_trigger or step_start:
                 if start_foot == "left":
                     if not is_above_line(keypoints_dict[0][19], gnd_line, step_offset):  # LBigToe on line
                         if not step_start:
@@ -233,21 +230,22 @@ for filename in os.listdir(json_folder_path):
                             step = stepData()
                             step.step_contact_counter += 1
                             step.step_start_coord = keypoints_dict[0][19]
-                            print("right", frame_number)
+                            print("left", frame_number)
                         else:
                             # if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):
                             step.step_contact_counter += 1
-                            print("contact", frame_number)
+                            print("left contact", frame_number)
                     elif is_above_line(keypoints_dict[0][22], gnd_line, step_offset) and step_start:
                         if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):  # both feet above gnd
                             step.step_flight_counter += 1
-                            print("flight", frame_number)
+                            print("left flight", frame_number)
                     elif step_start:
                         step.step_end_coord = keypoints_dict[0][22]
                         print(str(step))
                         steps.append(step)
-                        # step_start = False
+                        step_start = False
                         start_foot = "right"
+                        # printSteps(steps)
 
                 elif start_foot == "right":
                     if not is_above_line(keypoints_dict[0][22], gnd_line, step_offset):      # RBigToe on line
@@ -260,20 +258,18 @@ for filename in os.listdir(json_folder_path):
                         else:
                             # if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):
                             step.step_contact_counter += 1
-                            print("contact", frame_number)
+                            print("right contact", frame_number)
                     elif is_above_line(keypoints_dict[0][19], gnd_line, step_offset) and step_start:
                         if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):    # both feet above gnd
                             step.step_flight_counter += 1
-                            print("flight", frame_number)
+                            print("right flight", frame_number)
                     elif step_start:
                         step.step_end_coord = keypoints_dict[0][19]
                         print(str(step))
                         steps.append(step)
-                        # step_start = False
+                        step_start = False
                         start_foot = "left"
-
-
-
+                        # printSteps(steps)
 
 
         except IndexError:
@@ -283,6 +279,12 @@ for filename in os.listdir(json_folder_path):
         finally:
             # frame number
             cv2.putText(frame, str(frame_number), (0, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, f"start frame {int(start_frame)}", (0, 60), cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, f"frames to five meters {five_meter_counter}", (0, 90), cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, f"frames to ten meters {ten_meter_counter}", (0, 120), cv2.FONT_HERSHEY_SIMPLEX,
                         1, (0, 0, 255), 2, cv2.LINE_AA)
 
             # # draw area on frame
@@ -294,8 +296,9 @@ for filename in os.listdir(json_folder_path):
             cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
             cv2.imshow('frame', frame)
             # video_writer.write(frame)
-            cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)
+            # cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)
 
+            # for debug
             # if int(frame_number) > 600 and int(frame_number) < 960:
             #     cv2.waitKey(0)
             # elif cv2.waitKey(1) & 0xFF == ord('q'):
@@ -307,4 +310,7 @@ for filename in os.listdir(json_folder_path):
 # cv2.imshow(f"{frame_number}", frame)
 # cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+# step calculations
+printSteps(steps)
 
