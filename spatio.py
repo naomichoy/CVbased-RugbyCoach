@@ -1,9 +1,13 @@
 import os
+import sys
 import re
 import json
 import cv2
 from PIL import Image
 import numpy as np
+import time
+import math
+
 
 def read_json_file(file_path):
     with open(file_path) as file:
@@ -66,6 +70,16 @@ def printSteps(steps):
     for i, s in enumerate(steps):
         print(i, s)
 
+def isPlayer(keypoints):
+    head = (keypoints[0], keypoints[1])
+    RToe = (keypoints[3*22], keypoints[3*22+1])
+    distance = math.hypot(head[0] - RToe[0], head[1] - RToe[1])
+    # print(distance)
+    if distance > 120:
+        return True
+    return False
+
+
 class stepData():
     step_start_coord = ()
     step_end_coord = ()
@@ -85,11 +99,17 @@ class stepData():
                f'flight: {self.step_flight_counter}'
 
 
-video_name = "s2"
+video_name = "s4"   # without extension
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}_spatio.avi"
-output_frames = f"output_frames/{video_name}_spatio"
+output_frames_folder = f"output_frames/{video_name}_spatio"
+
+if not os.path.exists(output_frames_folder):
+    os.makedirs(output_frames_folder)
+
+# logfile
+log_file = open(f'logs/{video_name}_{time.strftime("%Y%m%d-%H%M%S", time.localtime())}.txt', 'w')
 
 # # define detection area
 # five_meter = [[965, 610], [965, 715], [1860, 685], [1580, 615]]
@@ -115,7 +135,7 @@ with open(config_file_path, 'r') as json_file:
     gnd_line = data['gnd_line']
     five_meter_line = data['five_meter_line']
     ten_meter_line = data['ten_meter_line']
-    direction = "left"  # direction towards
+    direction = data['direction']  # direction towards
 
 ## init frame counters
 # Performance variables: time to 5m and 10m
@@ -135,7 +155,7 @@ step_offset = 7
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 
 # get frame dimension
-frame_path = "frames/s2/frame_000000000000.jpg"
+frame_path = f"frames/{video_name}/frame_000000000000.jpg"
 frame = cv2.imread(frame_path)
 height, width, _ = frame.shape
 video_writer = cv2.VideoWriter(output_video,
@@ -156,14 +176,26 @@ for filename in os.listdir(json_folder_path):
         json_data = read_json_file(os.path.join(json_folder_path, filename))
 
         # read frame
-        frame_path = f"frames/s2/frame_{frame_number}.jpg"
+        frame_path = f"frames/{video_name}/frame_{frame_number}.jpg"
         frame = cv2.imread(frame_path)
         # print(frame.shape)
 
         try:
             keypoints = json_data['people'][0]['pose_keypoints_2d']
+            # number of people check
+            # print(f"person in frame {frame_number}: {len(json_data['people'])}")
 
-            # JSON read check
+            for p in json_data['people']:
+                next_keypoints = p['pose_keypoints_2d']
+                if not isPlayer(next_keypoints):
+                    if len(json_data['people']) < 2:
+                        # print("not player!")
+                        raise IndexError
+                else:
+                    keypoints = next_keypoints
+                    break
+
+            # JSON read keypoint check
             # print(len(keypoints))   # 75 -> 25 keypoints x3, x, y, conf
 
             # extract keypoints to keypoints_dict for easier interpretation
@@ -185,16 +217,18 @@ for filename in os.listdir(json_folder_path):
 
             # detect if foot lifted
             if not start_trigger and not five_meter_trigger:
-                if is_above_line(keypoints_dict[0][19], gnd_line, perf_offset):
-                    print(f"LBigToe off ground {frame_number}")
-                    start_frame = frame_number
-                    start_trigger = True
-                    start_foot = "left"
-                elif is_above_line(keypoints_dict[0][22], gnd_line, perf_offset):
-                    print(f"RBigToe off ground {frame_number}")
-                    start_frame = frame_number
-                    start_trigger = True
-                    start_foot = "right"
+                two_toe_distance = math.hypot(keypoints_dict[0][19][0] - keypoints_dict[0][22][0], keypoints_dict[0][19][1] - keypoints_dict[0][22][1])
+                if two_toe_distance > 60:   # inaccurate keypoint problem eg overlapping toes
+                    if is_above_line(keypoints_dict[0][19], gnd_line, perf_offset):
+                        print(f"LBigToe off ground {frame_number}")
+                        start_frame = frame_number
+                        start_trigger = True
+                        start_foot = "left"
+                    elif is_above_line(keypoints_dict[0][22], gnd_line, perf_offset):
+                        print(f"RBigToe off ground {frame_number}")
+                        start_frame = frame_number
+                        start_trigger = True
+                        start_foot = "right"
 
 
             # Performance variables: detect if cross line
@@ -230,18 +264,18 @@ for filename in os.listdir(json_folder_path):
                             step = stepData()
                             step.step_contact_counter += 1
                             step.step_start_coord = keypoints_dict[0][19]
-                            print("left", frame_number)
+                            print("left", frame_number, file=log_file)
                         else:
                             # if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):
                             step.step_contact_counter += 1
-                            print("left contact", frame_number)
+                            print("left contact", frame_number, file=log_file)
                     elif is_above_line(keypoints_dict[0][22], gnd_line, step_offset) and step_start:
                         if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):  # both feet above gnd
                             step.step_flight_counter += 1
-                            print("left flight", frame_number)
+                            print("left flight", frame_number, file=log_file)
                     elif step_start:
                         step.step_end_coord = keypoints_dict[0][22]
-                        print(str(step))
+                        print(str(step), file=log_file)
                         steps.append(step)
                         step_start = False
                         start_foot = "right"
@@ -254,18 +288,18 @@ for filename in os.listdir(json_folder_path):
                             step = stepData()
                             step.step_contact_counter += 1
                             step.step_start_coord = keypoints_dict[0][22]
-                            print("right", frame_number)
+                            print("right", frame_number, file=log_file)
                         else:
                             # if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):
                             step.step_contact_counter += 1
-                            print("right contact", frame_number)
+                            print("right contact", frame_number, file=log_file)
                     elif is_above_line(keypoints_dict[0][19], gnd_line, step_offset) and step_start:
                         if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):    # both feet above gnd
                             step.step_flight_counter += 1
-                            print("right flight", frame_number)
+                            print("right flight", frame_number, file=log_file)
                     elif step_start:
                         step.step_end_coord = keypoints_dict[0][19]
-                        print(str(step))
+                        print(str(step), file=log_file)
                         steps.append(step)
                         step_start = False
                         start_foot = "left"
@@ -296,7 +330,7 @@ for filename in os.listdir(json_folder_path):
             cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
             cv2.imshow('frame', frame)
             # video_writer.write(frame)
-            # cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)
+            cv2.imwrite(f"{output_frames_folder}/{frame_number}.jpg", frame)
 
             # for debug
             # if int(frame_number) > 600 and int(frame_number) < 960:
@@ -309,8 +343,15 @@ for filename in os.listdir(json_folder_path):
 
 # cv2.imshow(f"{frame_number}", frame)
 # cv2.waitKey(0)
-cv2.destroyAllWindows()
+
+print('\nSummary:', file=log_file)
+print(f"start frame {int(start_frame)}", file=log_file)
+print(f"five meters {five_meter_counter}", file=log_file)
+print(f"ten meters {ten_meter_counter}", file=log_file)
 
 # step calculations
+print("\nsteps debug", file=log_file)
 printSteps(steps)
 
+log_file.close()
+cv2.destroyAllWindows()
