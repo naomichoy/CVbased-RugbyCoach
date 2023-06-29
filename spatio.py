@@ -99,7 +99,8 @@ class stepData():
                f'flight: {self.step_flight_counter}'
 
 
-video_name = "s4"   # without extension
+debug = True
+video_name = "s2_test"   # without extension
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}_spatio.avi"
@@ -155,13 +156,18 @@ step_offset = 7
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 
 # get frame dimension
-frame_path = f"frames/{video_name}/frame_000000000000.jpg"
-frame = cv2.imread(frame_path)
-height, width, _ = frame.shape
-video_writer = cv2.VideoWriter(output_video,
-                               cv2.VideoWriter_fourcc(*'XVID'),
-                               30,
-                               (width, height))
+if not debug:
+    frame_path = f"frames/{video_name}/frame_000000000000.jpg"
+    frame = cv2.imread(frame_path)
+    height, width, _ = frame.shape
+    video_writer = cv2.VideoWriter(output_video,
+                                   cv2.VideoWriter_fourcc(*'XVID'),
+                                   30,
+                                   (width, height))
+
+# init keypoints list
+keypoints_dict_list = []
+buffer_size = 10
 
 ## main loop
 for filename in os.listdir(json_folder_path):
@@ -183,7 +189,7 @@ for filename in os.listdir(json_folder_path):
         try:
             keypoints = json_data['people'][0]['pose_keypoints_2d']
             # number of people check
-            # print(f"person in frame {frame_number}: {len(json_data['people'])}")
+            print(f"person in frame {frame_number}: {len(json_data['people'])}")
 
             for p in json_data['people']:
                 next_keypoints = p['pose_keypoints_2d']
@@ -199,13 +205,13 @@ for filename in os.listdir(json_folder_path):
             # print(len(keypoints))   # 75 -> 25 keypoints x3, x, y, conf
 
             # extract keypoints to keypoints_dict for easier interpretation
-            keypoints_dict = [{0: ""}]
+            keypoints_dict = {0: ""}
             for i in range(0, len(keypoints), 3):
                 # extract keypoints
                 keypoint_num = int(i/3)
                 point_to_draw = (round(keypoints[i]), round(keypoints[i+1]))
                 # print(keypoint_num, point_to_draw)
-                keypoints_dict[0][keypoint_num] = point_to_draw
+                keypoints_dict[keypoint_num] = point_to_draw
 
                 # draw on points on frame
                 cv2.circle(frame, point_to_draw, 2, (0, 255, 0), 2)
@@ -214,21 +220,56 @@ for filename in os.listdir(json_folder_path):
                                 1, (0, 255, 0), 2, cv2.LINE_AA)
 
             # print(keypoints_dict)
+            keypoints_dict['frame'] = int(frame_number)
+            keypoints_dict_list.append(keypoints_dict)
+            if len(keypoints_dict_list) > buffer_size:
+                keypoints_dict_list.pop(0)
+
+            # # calculate the mean of both toe keypoint
+            # LeftBigToe_x_list = [item[19][0] for item in keypoints_dict_list]
+            # RightBigToe_x_list = [item[22][0] for item in keypoints_dict_list]
+            #
+            # LeftBigToe_x_avg = sum(LeftBigToe_x_list) / len(LeftBigToe_x_list)
+            # RightBigToe_x_avg = sum(RightBigToe_x_list) / len(RightBigToe_x_list)
+
+            LeftBigToe_prev_x = keypoints_dict_list[-2][19][0]
+            RightBigToe_prev_x = keypoints_dict_list[-2][22][0]
+
+            # swap the x coord of keypoints if differ by more than the margin
+            swap_margin = 40
+            print("before swap", keypoints_dict[19], keypoints_dict[22])
+            # if keypoints_dict[19][0] > LeftBigToe_x_avg + swap_margin \
+            #     or keypoints_dict[22][0] > RightBigToe_x_avg + swap_margin \
+            #     or keypoints_dict[19][0] < LeftBigToe_x_avg - swap_margin \
+            #     or keypoints_dict[22][0] < RightBigToe_x_avg - swap_margin:
+
+            if keypoints_dict[19][0] > LeftBigToe_prev_x + swap_margin \
+                or keypoints_dict[22][0] > RightBigToe_prev_x + swap_margin \
+                or keypoints_dict[19][0] < LeftBigToe_prev_x - swap_margin \
+                or keypoints_dict[22][0] < RightBigToe_prev_x - swap_margin:
+
+                tmp = keypoints_dict[19]
+                keypoints_dict[19] = keypoints_dict[22]
+                keypoints_dict[22] = tmp
+                print("after swap", keypoints_dict[19], keypoints_dict[22])
+                keypoints_dict_list[-1] = keypoints_dict
+
+
 
             # detect if foot lifted
             if not start_trigger and not five_meter_trigger:
-                two_toe_distance = math.hypot(keypoints_dict[0][19][0] - keypoints_dict[0][22][0], keypoints_dict[0][19][1] - keypoints_dict[0][22][1])
-                if two_toe_distance > 60:   # inaccurate keypoint problem eg overlapping toes
-                    if is_above_line(keypoints_dict[0][19], gnd_line, perf_offset):
-                        print(f"LBigToe off ground {frame_number}")
-                        start_frame = frame_number
-                        start_trigger = True
-                        start_foot = "left"
-                    elif is_above_line(keypoints_dict[0][22], gnd_line, perf_offset):
-                        print(f"RBigToe off ground {frame_number}")
-                        start_frame = frame_number
-                        start_trigger = True
-                        start_foot = "right"
+                # two_toe_distance = math.hypot(keypoints_dict[19][0] - keypoints_dict[22][0], keypoints_dict[19][1] - keypoints_dict[22][1])
+                # if two_toe_distance > 60:   # inaccurate keypoint problem eg overlapping toes
+                if is_above_line(keypoints_dict[19], gnd_line, perf_offset):
+                    print(f"LBigToe off ground {frame_number}")
+                    start_frame = frame_number
+                    start_trigger = True
+                    start_foot = "left"
+                elif is_above_line(keypoints_dict[22], gnd_line, perf_offset):
+                    print(f"RBigToe off ground {frame_number}")
+                    start_frame = frame_number
+                    start_trigger = True
+                    start_foot = "right"
 
 
             # Performance variables: detect if cross line
@@ -236,10 +277,10 @@ for filename in os.listdir(json_folder_path):
                 ten_meter_counter += 1
                 if not five_meter_trigger:
                     five_meter_counter += 1
-                if is_left_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
+                if is_left_of_line(keypoints_dict[8], five_meter_line) and not five_meter_trigger:
                     print(f"five meters {five_meter_counter}")
                     five_meter_trigger = True
-                elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
+                elif is_left_of_line(keypoints_dict[8], ten_meter_line):
                     print(f'ten meters {ten_meter_counter}')
                     start_trigger = False
 
@@ -247,10 +288,10 @@ for filename in os.listdir(json_folder_path):
                 ten_meter_counter += 1
                 if not five_meter_trigger:
                     five_meter_counter += 1
-                if is_right_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
+                if is_right_of_line(keypoints_dict[8], five_meter_line) and not five_meter_trigger:
                     print(f"five meters {five_meter_counter}")
                     five_meter_trigger = True
-                elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
+                elif is_right_of_line(keypoints_dict[8], ten_meter_line):
                     print(f'ten meters {ten_meter_counter}')
                     start_trigger = False
 
@@ -258,23 +299,23 @@ for filename in os.listdir(json_folder_path):
             # spatio varaibles
             if start_trigger or step_start:
                 if start_foot == "left":
-                    if not is_above_line(keypoints_dict[0][19], gnd_line, step_offset):  # LBigToe on line
+                    if not is_above_line(keypoints_dict[19], gnd_line, step_offset):  # LBigToe on line
                         if not step_start:
                             step_start = True
                             step = stepData()
                             step.step_contact_counter += 1
-                            step.step_start_coord = keypoints_dict[0][19]
-                            print("left", frame_number, file=log_file)
+                            step.step_start_coord = keypoints_dict[19]
+                            print("left", frame_number)
                         else:
-                            # if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):
+                            # if is_above_line(keypoints_dict[22], gnd_line, step_offset):
                             step.step_contact_counter += 1
-                            print("left contact", frame_number, file=log_file)
-                    elif is_above_line(keypoints_dict[0][22], gnd_line, step_offset) and step_start:
-                        if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):  # both feet above gnd
+                            print("left contact", frame_number)
+                    elif is_above_line(keypoints_dict[22], gnd_line, step_offset) and step_start:
+                        if is_above_line(keypoints_dict[19], gnd_line, step_offset):  # both feet above gnd
                             step.step_flight_counter += 1
-                            print("left flight", frame_number, file=log_file)
+                            print("left flight", frame_number)
                     elif step_start:
-                        step.step_end_coord = keypoints_dict[0][22]
+                        step.step_end_coord = keypoints_dict[22]
                         print(str(step), file=log_file)
                         steps.append(step)
                         step_start = False
@@ -282,23 +323,23 @@ for filename in os.listdir(json_folder_path):
                         # printSteps(steps)
 
                 elif start_foot == "right":
-                    if not is_above_line(keypoints_dict[0][22], gnd_line, step_offset):      # RBigToe on line
+                    if not is_above_line(keypoints_dict[22], gnd_line, step_offset):      # RBigToe on line
                         if not step_start:
                             step_start = True
                             step = stepData()
                             step.step_contact_counter += 1
-                            step.step_start_coord = keypoints_dict[0][22]
-                            print("right", frame_number, file=log_file)
+                            step.step_start_coord = keypoints_dict[22]
+                            print("right", frame_number)
                         else:
-                            # if is_above_line(keypoints_dict[0][19], gnd_line, step_offset):
+                            # if is_above_line(keypoints_dict[19], gnd_line, step_offset):
                             step.step_contact_counter += 1
-                            print("right contact", frame_number, file=log_file)
-                    elif is_above_line(keypoints_dict[0][19], gnd_line, step_offset) and step_start:
-                        if is_above_line(keypoints_dict[0][22], gnd_line, step_offset):    # both feet above gnd
+                            print("right contact", frame_number)
+                    elif is_above_line(keypoints_dict[19], gnd_line, step_offset) and step_start:
+                        if is_above_line(keypoints_dict[22], gnd_line, step_offset):    # both feet above gnd
                             step.step_flight_counter += 1
-                            print("right flight", frame_number, file=log_file)
+                            print("right flight", frame_number)
                     elif step_start:
-                        step.step_end_coord = keypoints_dict[0][19]
+                        step.step_end_coord = keypoints_dict[19]
                         print(str(step), file=log_file)
                         steps.append(step)
                         step_start = False
@@ -350,7 +391,7 @@ print(f"five meters {five_meter_counter}", file=log_file)
 print(f"ten meters {ten_meter_counter}", file=log_file)
 
 # step calculations
-print("\nsteps debug", file=log_file)
+print("\nsteps debug")
 printSteps(steps)
 
 log_file.close()
