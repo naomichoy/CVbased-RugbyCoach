@@ -189,7 +189,7 @@ for filename in os.listdir(json_folder_path):
         try:
             keypoints = json_data['people'][0]['pose_keypoints_2d']
             # number of people check
-            print(f"person in frame {frame_number}: {len(json_data['people'])}")
+            # print(f"person in frame {frame_number}: {len(json_data['people'])}")
 
             for p in json_data['people']:
                 next_keypoints = p['pose_keypoints_2d']
@@ -205,55 +205,46 @@ for filename in os.listdir(json_folder_path):
             # print(len(keypoints))   # 75 -> 25 keypoints x3, x, y, conf
 
             # extract keypoints to keypoints_dict for easier interpretation
-            keypoints_dict = {0: ""}
+            keypoints_dict = {"frame": frame_number}
             for i in range(0, len(keypoints), 3):
                 # extract keypoints
                 keypoint_num = int(i/3)
                 point_to_draw = (round(keypoints[i]), round(keypoints[i+1]))
                 # print(keypoint_num, point_to_draw)
                 keypoints_dict[keypoint_num] = point_to_draw
-
                 # draw on points on frame
                 cv2.circle(frame, point_to_draw, 2, (0, 255, 0), 2)
                 if keypoint_num == 19 or keypoint_num == 22:    # indicating which toe detected
                     cv2.putText(frame, str(keypoint_num), point_to_draw, cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0, 255, 0), 2, cv2.LINE_AA)
 
+            # compare with prev frame
+            if len(keypoints_dict_list) > 0:
+                LeftBigToe_prev_x = keypoints_dict_list[-1][19][0]
+                RightBigToe_prev_x = keypoints_dict_list[-1][22][0]
+
+                # swap the x coord of keypoints if differ by more than the margin
+                swap_margin = 40
+                print("before swap", keypoints_dict[19], keypoints_dict[22])
+                if keypoints_dict[19][0] > LeftBigToe_prev_x + swap_margin \
+                        or keypoints_dict[22][0] > RightBigToe_prev_x + swap_margin \
+                        or keypoints_dict[19][0] < LeftBigToe_prev_x - swap_margin \
+                        or keypoints_dict[22][0] < RightBigToe_prev_x - swap_margin:
+                    tmp = keypoints_dict[19]
+                    keypoints_dict[19] = keypoints_dict[22]
+                    keypoints_dict[22] = tmp
+                    print("after swap", keypoints_dict[19], keypoints_dict[22])
+                    cv2.circle(frame, keypoints_dict[19], 2, (0, 0, 255), 2)
+                    cv2.putText(frame, str(19), keypoints_dict[19], cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0, 0, 255), 2, cv2.LINE_AA)
+                    cv2.circle(frame, keypoints_dict[22], 2, (0, 0, 255), 2)
+                    cv2.putText(frame, str(22), keypoints_dict[22], cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0, 0, 255), 2, cv2.LINE_AA)
+
             # print(keypoints_dict)
-            keypoints_dict['frame'] = int(frame_number)
             keypoints_dict_list.append(keypoints_dict)
             if len(keypoints_dict_list) > buffer_size:
                 keypoints_dict_list.pop(0)
-
-            # # calculate the mean of both toe keypoint
-            # LeftBigToe_x_list = [item[19][0] for item in keypoints_dict_list]
-            # RightBigToe_x_list = [item[22][0] for item in keypoints_dict_list]
-            #
-            # LeftBigToe_x_avg = sum(LeftBigToe_x_list) / len(LeftBigToe_x_list)
-            # RightBigToe_x_avg = sum(RightBigToe_x_list) / len(RightBigToe_x_list)
-
-            LeftBigToe_prev_x = keypoints_dict_list[-2][19][0]
-            RightBigToe_prev_x = keypoints_dict_list[-2][22][0]
-
-            # swap the x coord of keypoints if differ by more than the margin
-            swap_margin = 40
-            print("before swap", keypoints_dict[19], keypoints_dict[22])
-            # if keypoints_dict[19][0] > LeftBigToe_x_avg + swap_margin \
-            #     or keypoints_dict[22][0] > RightBigToe_x_avg + swap_margin \
-            #     or keypoints_dict[19][0] < LeftBigToe_x_avg - swap_margin \
-            #     or keypoints_dict[22][0] < RightBigToe_x_avg - swap_margin:
-
-            if keypoints_dict[19][0] > LeftBigToe_prev_x + swap_margin \
-                or keypoints_dict[22][0] > RightBigToe_prev_x + swap_margin \
-                or keypoints_dict[19][0] < LeftBigToe_prev_x - swap_margin \
-                or keypoints_dict[22][0] < RightBigToe_prev_x - swap_margin:
-
-                tmp = keypoints_dict[19]
-                keypoints_dict[19] = keypoints_dict[22]
-                keypoints_dict[22] = tmp
-                print("after swap", keypoints_dict[19], keypoints_dict[22])
-                keypoints_dict_list[-1] = keypoints_dict
-
 
 
             # detect if foot lifted
@@ -316,7 +307,7 @@ for filename in os.listdir(json_folder_path):
                             print("left flight", frame_number)
                     elif step_start:
                         step.step_end_coord = keypoints_dict[22]
-                        print(str(step), file=log_file)
+                        print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
                         steps.append(step)
                         step_start = False
                         start_foot = "right"
@@ -340,7 +331,7 @@ for filename in os.listdir(json_folder_path):
                             print("right flight", frame_number)
                     elif step_start:
                         step.step_end_coord = keypoints_dict[19]
-                        print(str(step), file=log_file)
+                        print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
                         steps.append(step)
                         step_start = False
                         start_foot = "left"
