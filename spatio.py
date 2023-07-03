@@ -100,11 +100,11 @@ class stepData():
 
 
 debug = True
-video_name = "s2_test"   # without extension
+video_name = "s4_3"   # without extension
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
-output_video = f"output_video/{video_name}_spatio.avi"
-output_frames_folder = f"output_frames/{video_name}_spatio"
+output_video = f"output_video/{video_name}.avi"
+output_frames_folder = f"output_frames/{video_name}"
 
 if not os.path.exists(output_frames_folder):
     os.makedirs(output_frames_folder)
@@ -377,6 +377,8 @@ for filename in os.listdir(json_folder_path):
 # cv2.waitKey(0)
 
 print('\nSummary:', file=log_file)
+print(f"pref_offset: {perf_offset}",  file=log_file)
+print(f"step_offset: {step_offset}", file=log_file)
 print(f"start frame {int(start_frame)}", file=log_file)
 print(f"five meters {five_meter_counter}", file=log_file)
 print(f"ten meters {ten_meter_counter}", file=log_file)
