@@ -122,7 +122,7 @@ class stepData():
                 f'end: {self.step_end_coord},' \
                f'contact frames: {self.step_contact_counter}, ' \
                f'flight frames: {self.step_flight_counter}' \
-               f'\ntouch down dist,' \
+               f'\ntouch down dist {self.touchDown_dist}, ' \
                f'toe off dist '
 
 
@@ -324,6 +324,10 @@ for filename in os.listdir(json_folder_path):
                             step.step_contact_counter += 1
                             step.step_start_coord = keypoints_dict[19]
                             # print("left", frame_number)
+
+                            # touch down distance
+                            step.touchDown_cm_coord = bodyCM(keypoints_dict)
+                            step.touchDown_dist = dist_CM2Toe(step.touchDown_cm_coord[0], keypoints_dict[19][0])
                         else:
                             # if is_above_line(keypoints_dict[22], gnd_line, step_offset):
                             step.step_contact_counter += 1
@@ -332,6 +336,8 @@ for filename in os.listdir(json_folder_path):
                         if is_above_line(keypoints_dict[19], gnd_line, step_offset):  # both feet above gnd
                             step.step_flight_counter += 1
                             # print("left flight", frame_number)
+
+                            # toe off distance
                     elif step_start:
                         step.step_end_coord = keypoints_dict[22]
                         print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
@@ -348,6 +354,10 @@ for filename in os.listdir(json_folder_path):
                             step.step_contact_counter += 1
                             step.step_start_coord = keypoints_dict[22]
                             # print("right", frame_number)
+
+                            # touch down distance
+                            step.touchDown_cm_coord = bodyCM(keypoints_dict)
+                            step.touchDown_dist = dist_CM2Toe(step.touchDown_cm_coord[0], keypoints_dict[22][0])
                         else:
                             # if is_above_line(keypoints_dict[19], gnd_line, step_offset):
                             step.step_contact_counter += 1
@@ -356,6 +366,8 @@ for filename in os.listdir(json_folder_path):
                         if is_above_line(keypoints_dict[22], gnd_line, step_offset):    # both feet above gnd
                             step.step_flight_counter += 1
                             # print("right flight", frame_number)
+
+                            # toe off distance
                     elif step_start:
                         step.step_end_coord = keypoints_dict[19]
                         print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
