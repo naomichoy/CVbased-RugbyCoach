@@ -93,11 +93,21 @@ def dist_CM2Toe(cm_x, toe_x):
     return abs(cm_x - toe_x)
 
 
+def dist_contact(touchDown_x, toeOff_x):
+    return abs(touchDown_x - toeOff_x)
+
+
+def dist_flight(next_touchDown_x, toeOff_x):
+    return abs(next_touchDown_x - toeOff_x)
+
+
 class stepData():
     step_start_coord = ()
     step_end_coord = ()
+
     step_contact_counter = 0
     step_flight_counter = 0
+
     touchDown_dist = 0
     toeOff_dist = 0
     contact_length = 0
@@ -115,18 +125,20 @@ class stepData():
         self.contact_length = 0
         self.flight_length = 0
         self.touchDown_cm_coord = ()
-        self.toeOff_cm_coord =()
+        self.toeOff_cm_coord = ()
 
     def __str__(self):
         return f'start: {self.step_start_coord}, ' \
                 f'end: {self.step_end_coord},' \
                f'contact frames: {self.step_contact_counter}, ' \
                f'flight frames: {self.step_flight_counter}' \
-               f'\ntouch down dist {self.touchDown_dist}, ' \
-               f'toe off dist '
+               f'\ntouch down dist: {self.touchDown_dist}, ' \
+               f'toe off dist: {self.touchDown_dist}, ' \
+               f'contact length: {self.contact_length}, ' \
+               f'flight length: {self.flight_length}'
 
 
-debug = True
+debug = False
 video_name = "s2"   # without extension
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
@@ -338,8 +350,14 @@ for filename in os.listdir(json_folder_path):
                             # print("left flight", frame_number)
 
                             # toe off distance
-                    elif step_start:
+                            if step.toeOff_dist == 0:
+                                step.toeOff_cm_coord = bodyCM(keypoints_dict)
+                                step.toeOff_dist = dist_CM2Toe(step.toeOff_cm_coord[0], keypoints_dict[19][0])
+                                step.contact_length = dist_contact(step.touchDown_cm_coord[0], step.toeOff_cm_coord[0])
+                    elif step_start: # enf od step
                         step.step_end_coord = keypoints_dict[22]
+                        end_cm = bodyCM(keypoints_dict)
+                        step.flight_length = dist_flight(end_cm[0], step.toeOff_cm_coord[0])
                         print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
                         steps.append(step)
                         step_start = False
@@ -368,14 +386,19 @@ for filename in os.listdir(json_folder_path):
                             # print("right flight", frame_number)
 
                             # toe off distance
+                            if step.toeOff_dist == 0:
+                                step.toeOff_cm_coord = bodyCM(keypoints_dict)
+                                step.toeOff_dist = dist_CM2Toe(step.toeOff_cm_coord[0], keypoints_dict[22][0])
+                                step.contact_length = dist_contact(step.touchDown_cm_coord[0], step.toeOff_cm_coord[0])
                     elif step_start:
                         step.step_end_coord = keypoints_dict[19]
+                        end_cm = bodyCM(keypoints_dict)
+                        step.flight_length = dist_flight(end_cm[0], step.toeOff_cm_coord[0])
                         print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
                         steps.append(step)
                         step_start = False
                         start_foot = "left"
                         # printSteps(steps)
-
 
         except IndexError:
             # print("no person detected in this frame", json_data)
