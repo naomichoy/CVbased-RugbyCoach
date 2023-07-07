@@ -83,9 +83,20 @@ def isPlayer(keypoints):
     return False
 
 
-def bodyCM(keypoints):
-    mid_x = (keypoints[1][0] + keypoints[8][0])/2
-    mid_y = (keypoints[1][1] + keypoints[8][1])/2
+def bodyCM(keypoints_dict):
+    index = [1, 2, 5, 8, 9, 12]
+    trunk_x = [keypoints_dict[i][0] for i in index]
+    trunk_y = [keypoints_dict[i][1] for i in index]
+    trunk_x.sort()
+    trunk_y.sort()
+    mid_ind = len(trunk_x) // 2
+    if len(trunk_x) % 2 == 1:
+        mid_x = trunk_x[mid_ind]
+        mid_y = trunk_y[mid_ind]
+    else:
+        mid_x = (trunk_x[mid_ind - 1] + trunk_x[mid_ind]) // 2
+        mid_y = (trunk_y[mid_ind - 1] + trunk_y[mid_ind]) // 2
+    print("bodyCM:", mid_x, mid_y)
     return mid_x, mid_y
 
 
@@ -102,6 +113,9 @@ def dist_flight(next_touchDown_x, toeOff_x):
 
 
 class stepData():
+    start_frame = 0
+    end_frame = 0
+
     step_start_coord = ()
     step_end_coord = ()
 
@@ -115,7 +129,7 @@ class stepData():
     touchDown_cm_coord = ()
     toeOff_cm_coord = ()
 
-    def __init__(self):
+    def __init__(self, start_frame):
         self.step_start_coord = ()
         self.step_end_coord = ()
         self.step_contact_counter = 0
@@ -126,10 +140,11 @@ class stepData():
         self.flight_length = 0
         self.touchDown_cm_coord = ()
         self.toeOff_cm_coord = ()
+        self.start_frame = start_frame
 
     def __str__(self):
-        return f'start: {self.step_start_coord}, ' \
-                f'end: {self.step_end_coord},' \
+        return f'start: frame {self.start_frame} {self.step_start_coord}, ' \
+               f'end: frame {self.start_frame} {self.step_end_coord}, ' \
                f'contact frames: {self.step_contact_counter}, ' \
                f'flight frames: {self.step_flight_counter}' \
                f'\ntouch down dist: {self.touchDown_dist}, ' \
@@ -332,13 +347,16 @@ for filename in os.listdir(json_folder_path):
                     if not is_above_line(keypoints_dict[19], gnd_line, step_offset):  # LBigToe on line
                         if not step_start:
                             step_start = True
-                            step = stepData()
+                            step = stepData(int(frame_number))
                             step.step_contact_counter += 1
                             step.step_start_coord = keypoints_dict[19]
                             # print("left", frame_number)
 
                             # touch down distance
                             step.touchDown_cm_coord = bodyCM(keypoints_dict)
+                            cv2.circle(frame, step.touchDown_cm_coord, 2, (0, 0, 255), 2)
+                            cv2.putText(frame, "CM", step.touchDown_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
+                                        1, (0, 0, 255), 2, cv2.LINE_AA)
                             step.touchDown_dist = dist_CM2Toe(step.touchDown_cm_coord[0], keypoints_dict[19][0])
                         else:
                             # if is_above_line(keypoints_dict[22], gnd_line, step_offset):
@@ -352,12 +370,19 @@ for filename in os.listdir(json_folder_path):
                             # toe off distance
                             if step.toeOff_dist == 0:
                                 step.toeOff_cm_coord = bodyCM(keypoints_dict)
+                                cv2.circle(frame, step.toeOff_cm_coord, 2, (0, 0, 255), 2)
+                                cv2.putText(frame, "CM", step.toeOff_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
+                                            1, (0, 0, 255), 2, cv2.LINE_AA)
                                 step.toeOff_dist = dist_CM2Toe(step.toeOff_cm_coord[0], keypoints_dict[19][0])
                                 step.contact_length = dist_contact(step.touchDown_cm_coord[0], step.toeOff_cm_coord[0])
                     elif step_start: # enf od step
                         step.step_end_coord = keypoints_dict[22]
                         end_cm = bodyCM(keypoints_dict)
+                        cv2.circle(frame, end_cm, 2, (0, 0, 255), 2)
+                        cv2.putText(frame, "CM", end_cm, cv2.FONT_HERSHEY_SIMPLEX,
+                                    1, (0, 0, 255), 2, cv2.LINE_AA)
                         step.flight_length = dist_flight(end_cm[0], step.toeOff_cm_coord[0])
+                        step.end_frame = int(frame_number)
                         print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
                         steps.append(step)
                         step_start = False
@@ -368,13 +393,16 @@ for filename in os.listdir(json_folder_path):
                     if not is_above_line(keypoints_dict[22], gnd_line, step_offset):      # RBigToe on line
                         if not step_start:
                             step_start = True
-                            step = stepData()
+                            step = stepData(int(frame_number))
                             step.step_contact_counter += 1
                             step.step_start_coord = keypoints_dict[22]
                             # print("right", frame_number)
 
                             # touch down distance
                             step.touchDown_cm_coord = bodyCM(keypoints_dict)
+                            cv2.circle(frame, step.touchDown_cm_coord, 2, (0, 0, 255), 2)
+                            cv2.putText(frame, "CM", step.touchDown_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
+                                        1, (0, 0, 255), 2, cv2.LINE_AA)
                             step.touchDown_dist = dist_CM2Toe(step.touchDown_cm_coord[0], keypoints_dict[22][0])
                         else:
                             # if is_above_line(keypoints_dict[19], gnd_line, step_offset):
@@ -388,12 +416,19 @@ for filename in os.listdir(json_folder_path):
                             # toe off distance
                             if step.toeOff_dist == 0:
                                 step.toeOff_cm_coord = bodyCM(keypoints_dict)
+                                cv2.circle(frame, step.toeOff_cm_coord, 2, (0, 0, 255), 2)
+                                cv2.putText(frame, "CM", step.toeOff_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
+                                            1, (0, 0, 255), 2, cv2.LINE_AA)
                                 step.toeOff_dist = dist_CM2Toe(step.toeOff_cm_coord[0], keypoints_dict[22][0])
                                 step.contact_length = dist_contact(step.touchDown_cm_coord[0], step.toeOff_cm_coord[0])
                     elif step_start:
                         step.step_end_coord = keypoints_dict[19]
                         end_cm = bodyCM(keypoints_dict)
+                        cv2.circle(frame, end_cm, 2, (0, 0, 255), 2)
+                        cv2.putText(frame, "CM", end_cm, cv2.FONT_HERSHEY_SIMPLEX,
+                                    1, (0, 0, 255), 2, cv2.LINE_AA)
                         step.flight_length = dist_flight(end_cm[0], step.toeOff_cm_coord[0])
+                        step.end_frame = int(frame_number)
                         print(f'{str(step)}, frame {int(frame_number)}', file=log_file)
                         steps.append(step)
                         step_start = False
