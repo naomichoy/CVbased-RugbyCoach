@@ -147,7 +147,7 @@ class stepData():
 
     def __str__(self):
         return f'start: frame {self.start_frame} {self.step_start_coord}, ' \
-               f'end: frame {self.start_frame} {self.step_end_coord}, ' \
+               f'end: frame {self.end_frame} {self.step_end_coord}, ' \
                f'contact frames: {self.step_contact_counter}, ' \
                f'flight frames: {self.step_flight_counter}' \
                f'\ntouch down dist: {self.touchDown_dist}, ' \
@@ -207,6 +207,7 @@ perf_offset = 15
 # Spatiotemporal variables
 start_foot = ""     # back foot
 step_start = False
+toe_off = False
 steps = []
 step_offset = 7
 
@@ -368,6 +369,7 @@ for filename in os.listdir(json_folder_path):
                     elif is_above_line(keypoints_dict[22], gnd_line, step_offset) and step_start:
                         if is_above_line(keypoints_dict[19], gnd_line, step_offset):  # both feet above gnd
                             step.step_flight_counter += 1
+                            toe_off = True
                             # print("left flight", frame_number)
 
                             # toe off distance
@@ -379,7 +381,7 @@ for filename in os.listdir(json_folder_path):
                                             1, (0, 0, 255), 2, cv2.LINE_AA)
                                 step.toeOff_dist = dist_CM2Toe(step.toeOff_cm_coord[0], keypoints_dict[19][0])
                                 step.contact_length = dist_contact(step.touchDown_cm_coord[0], step.toeOff_cm_coord[0])
-                    elif step_start:    # enf of step
+                    elif step_start and toe_off:    # enf of step
                         print("end step")
                         step.step_end_coord = keypoints_dict[22]
                         end_cm = bodyCM(keypoints_dict)
@@ -416,19 +418,20 @@ for filename in os.listdir(json_folder_path):
                     elif is_above_line(keypoints_dict[19], gnd_line, step_offset) and step_start:
                         if is_above_line(keypoints_dict[22], gnd_line, step_offset):    # both feet above gnd
                             step.step_flight_counter += 1
+                            toe_off = True
                             # print("right flight", frame_number)
 
                             # toe off distance
                             if step.toeOff_dist == 0:
-                                print("toe off")
+                                print(f"toe off {frame_number}")
                                 step.toeOff_cm_coord = bodyCM(keypoints_dict)
                                 cv2.circle(frame, step.toeOff_cm_coord, 2, (0, 0, 255), 2)
                                 cv2.putText(frame, "CM", step.toeOff_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
                                             1, (0, 0, 255), 2, cv2.LINE_AA)
                                 step.toeOff_dist = dist_CM2Toe(step.toeOff_cm_coord[0], keypoints_dict[22][0])
                                 step.contact_length = dist_contact(step.touchDown_cm_coord[0], step.toeOff_cm_coord[0])
-                    elif step_start:
-                        print("end step")
+                    elif step_start and toe_off:
+                        print(f"end step right {frame_number}")
                         step.step_end_coord = keypoints_dict[19]
                         end_cm = bodyCM(keypoints_dict)
                         cv2.circle(frame, end_cm, 2, (0, 0, 255), 2)
