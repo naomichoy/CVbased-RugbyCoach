@@ -156,18 +156,19 @@ class stepData():
                f'flight length: {self.flight_length}'
 
 
-debug = False
+save_frames = True
+time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
 video_name = "s2"   # without extension
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
-output_video = f"output_video/{video_name}.avi"
-output_frames_folder = f"output_frames/{video_name}"
+output_video = f"output_video/{video_name}-{time_now}.avi"
+output_frames_folder = f"output_frames/{video_name}-{time_now}"
 
 if not os.path.exists(output_frames_folder):
     os.makedirs(output_frames_folder)
 
 # logfile
-log_file = open(f'logs/{video_name}_{time.strftime("%Y%m%d-%H%M%S", time.localtime())}.txt', 'w')
+log_file = open(f'logs/{video_name}_{time_now}.txt', 'w')
 
 # # define detection area
 # five_meter = [[965, 610], [965, 715], [1860, 685], [1580, 615]]
@@ -214,8 +215,8 @@ step_offset = 7
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 
 # get frame dimension for video writer
-if not debug:
-    frame_path = f"frames/{video_name}/frame_000000000000.jpg"
+if save_frames:
+    frame_path = f"frames/{video_name}/frame_000000000592.jpg"
     frame = cv2.imread(frame_path)
     height, width, _ = frame.shape
     video_writer = cv2.VideoWriter(output_video,
@@ -225,7 +226,7 @@ if not debug:
 
 # init keypoints list
 keypoints_dict_list = []
-buffer_size = 10
+buffer_size = 5
 
 ## main loop
 for filename in os.listdir(json_folder_path):
@@ -247,7 +248,7 @@ for filename in os.listdir(json_folder_path):
         try:
             keypoints = json_data['people'][0]['pose_keypoints_2d']
             # number of people check
-            # print(f"person in frame {frame_number}: {len(json_data['people'])}")
+            print(f"person in frame {frame_number}: {len(json_data['people'])}")
 
             for p in json_data['people']:
                 next_keypoints = p['pose_keypoints_2d']
@@ -281,17 +282,50 @@ for filename in os.listdir(json_folder_path):
                 LeftBigToe_prev_x = keypoints_dict_list[-1][19][0]
                 RightBigToe_prev_x = keypoints_dict_list[-1][22][0]
 
+                # calculate the mean of both toe keypoint
+                LeftBigToe_x_list = [item[19][0] for item in keypoints_dict_list]
+                RightBigToe_x_list = [item[22][0] for item in keypoints_dict_list]
+
+                LeftBigToe_x_avg = sum(LeftBigToe_x_list) / len(LeftBigToe_x_list)
+                RightBigToe_x_avg = sum(RightBigToe_x_list) / len(RightBigToe_x_list)
+
+                LeftBigToe_x_list.sort()
+                RightBigToe_x_list.sort()
+
+                mid_ind = len(LeftBigToe_x_list) // 2
+                if len(LeftBigToe_x_list) % 2 == 1:
+                    LeftBigToe_mid_x = LeftBigToe_x_list[mid_ind]
+                    RightBigToe_mid_x = RightBigToe_x_list[mid_ind]
+                else:
+                    LeftBigToe_mid_x = (LeftBigToe_x_list[mid_ind - 1] + LeftBigToe_x_list[mid_ind]) // 2
+                    RightBigToe_mid_x = (RightBigToe_x_list[mid_ind - 1] + RightBigToe_x_list[mid_ind]) // 2
+
                 # swap the x coord of keypoints if differ by more than the margin
                 swap_margin = 40
-                # print("before swap", keypoints_dict[19], keypoints_dict[22])
-                if keypoints_dict[19][0] > LeftBigToe_prev_x + swap_margin \
-                        or keypoints_dict[22][0] > RightBigToe_prev_x + swap_margin \
-                        or keypoints_dict[19][0] < LeftBigToe_prev_x - swap_margin \
-                        or keypoints_dict[22][0] < RightBigToe_prev_x - swap_margin:
+                mid_swap_margin = 60
+                print(frame_number, "before swap", keypoints_dict[19], keypoints_dict[22])
+                prev_bool = keypoints_dict[19][0] > LeftBigToe_prev_x + swap_margin \
+                            or keypoints_dict[22][0] > RightBigToe_prev_x + swap_margin \
+                            or keypoints_dict[19][0] < LeftBigToe_prev_x - swap_margin \
+                            or keypoints_dict[22][0] < RightBigToe_prev_x - swap_margin \
+                            or LeftBigToe_prev_x - keypoints_dict[19][0] > LeftBigToe_prev_x - keypoints_dict[22][0]
+
+                avg_bool = keypoints_dict[19][0] > LeftBigToe_x_avg + swap_margin \
+                            or keypoints_dict[22][0] > RightBigToe_x_avg + swap_margin \
+                            or keypoints_dict[19][0] < LeftBigToe_x_avg - swap_margin \
+                            or keypoints_dict[22][0] < RightBigToe_x_avg - swap_margin
+
+                mid_bool = keypoints_dict[19][0] > LeftBigToe_mid_x + mid_swap_margin \
+                            or keypoints_dict[22][0] > RightBigToe_mid_x + mid_swap_margin \
+                            or keypoints_dict[19][0] < LeftBigToe_mid_x - mid_swap_margin \
+                            or keypoints_dict[22][0] < RightBigToe_mid_x - mid_swap_margin
+
+                if mid_bool and prev_bool:
+                # if LeftBigToe_prev_x - keypoints_dict[19][0] > LeftBigToe_prev_x - keypoints_dict[22][0]:     # diff between prev x of keypoint 19 and both current 19 and 22
                     tmp = keypoints_dict[19]
                     keypoints_dict[19] = keypoints_dict[22]
                     keypoints_dict[22] = tmp
-                    # print("after swap", keypoints_dict[19], keypoints_dict[22])
+                    print("after swap", keypoints_dict[19], keypoints_dict[22])
                     cv2.circle(frame, keypoints_dict[19], 2, (0, 0, 255), 2)
                     cv2.putText(frame, str(19), keypoints_dict[19], cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0, 0, 255), 2, cv2.LINE_AA)
@@ -468,7 +502,7 @@ for filename in os.listdir(json_folder_path):
             cv2.line(frame, five_meter_line[0], five_meter_line[1], (0, 0, 255), 2)
             cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
             cv2.imshow('frame', frame)
-            if not debug:
+            if save_frames:
                 video_writer.write(frame)
                 cv2.imwrite(f"{output_frames_folder}/{frame_number}.jpg", frame)
 
