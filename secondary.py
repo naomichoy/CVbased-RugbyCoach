@@ -158,7 +158,7 @@ class stepData():
 
 save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-video_name = "s2"   # without extension
+video_name = "s3"   # without extension
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}-{time_now}.avi"
@@ -216,7 +216,10 @@ cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 
 # get frame dimension for video writer
 if save_frames:
-    frame_path = f"frames/{video_name}/frame_000000000592.jpg"
+    frame_folder_path = f"frames/{video_name}"
+    folder_walk = os.walk(frame_folder_path)
+    frame_name = next(folder_walk)[2][0]
+    frame_path = os.path.join(frame_folder_path, frame_name)
     frame = cv2.imread(frame_path)
     height, width, _ = frame.shape
     video_writer = cv2.VideoWriter(output_video,
@@ -310,10 +313,10 @@ for filename in os.listdir(json_folder_path):
                             or keypoints_dict[22][0] < RightBigToe_prev_x - swap_margin \
                             or LeftBigToe_prev_x - keypoints_dict[19][0] > LeftBigToe_prev_x - keypoints_dict[22][0]
 
-                avg_bool = keypoints_dict[19][0] > LeftBigToe_x_avg + swap_margin \
-                            or keypoints_dict[22][0] > RightBigToe_x_avg + swap_margin \
-                            or keypoints_dict[19][0] < LeftBigToe_x_avg - swap_margin \
-                            or keypoints_dict[22][0] < RightBigToe_x_avg - swap_margin
+                # avg_bool = keypoints_dict[19][0] > LeftBigToe_x_avg + swap_margin \
+                #             or keypoints_dict[22][0] > RightBigToe_x_avg + swap_margin \
+                #             or keypoints_dict[19][0] < LeftBigToe_x_avg - swap_margin \
+                #             or keypoints_dict[22][0] < RightBigToe_x_avg - swap_margin
 
                 mid_bool = keypoints_dict[19][0] > LeftBigToe_mid_x + mid_swap_margin \
                             or keypoints_dict[22][0] > RightBigToe_mid_x + mid_swap_margin \
