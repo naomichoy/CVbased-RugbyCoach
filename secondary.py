@@ -121,9 +121,13 @@ class stepData():
 
     step_start_coord = ()
     step_end_coord = ()
+    step_length = 0
 
     step_contact_counter = 0
     step_flight_counter = 0
+    contact_time = 0
+    flight_time = 0
+    step_rate = 0
 
     touchDown_dist = 0
     toeOff_dist = 0
@@ -133,32 +137,41 @@ class stepData():
     toeOff_cm_coord = ()
 
     def __init__(self, start_frame):
+        self.start_frame = start_frame
+
         self.step_start_coord = ()
         self.step_end_coord = ()
+        self.step_length = 0
+
         self.step_contact_counter = 0
         self.step_flight_counter = 0
+
         self.touchDown_dist = 0
         self.toeOff_dist = 0
         self.contact_length = 0
         self.flight_length = 0
         self.touchDown_cm_coord = ()
         self.toeOff_cm_coord = ()
-        self.start_frame = start_frame
 
     def __str__(self):
         return f'start: frame {self.start_frame} {self.step_start_coord}, ' \
                f'end: frame {self.end_frame} {self.step_end_coord}, ' \
+               f'step length: {self.step_length}, ' \
                f'contact frames: {self.step_contact_counter}, ' \
                f'flight frames: {self.step_flight_counter}' \
+               f'\ncontact time: {self.contact_time}, ' \
+               f'flight time: {self.flight_time}, ' \
+               f'step rate: {self.step_rate}' \
                f'\ntouch down dist: {self.touchDown_dist}, ' \
-               f'toe off dist: {self.touchDown_dist}, ' \
+               f'toe off dist: {self.toeOff_dist}, ' \
                f'contact length: {self.contact_length}, ' \
                f'flight length: {self.flight_length}'
 
 
+video_name = "s2"   # without extension
+fps = 240
 save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-video_name = "s3"   # without extension
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}-{time_now}.avi"
@@ -170,25 +183,7 @@ if not os.path.exists(output_frames_folder):
 # logfile
 log_file = open(f'logs/{video_name}_{time_now}.txt', 'w')
 
-# # define detection area
-# five_meter = [[965, 610], [965, 715], [1860, 685], [1580, 615]]
-# five_meter = np.array(five_meter)
-# five_meter = five_meter.reshape((-1, 1, 2))
-#
-# ten_meter = [[295, 610], [165, 715], [965, 610], [965, 715]]
-# ten_meter = np.array(ten_meter)
-# ten_meter = ten_meter.reshape((-1, 1, 2))
-#
-# # create area mask
-# five_meter_mask = create_mask(frame.shape, five_meter)
-# cv2.imshow("5 meter Mask", five_meter_mask)
-# cv2.waitKey(0)
-
 ## define lines
-# gnd_line = [[1894, 644], [142, 659]]
-# five_meter_line = [[960, 330], [960, 805]]
-# ten_meter_line = [[195, 330], [195, 805]]
-# direction = "left"  # direction towards
 with open(config_file_path, 'r') as json_file:
     data = json.load(json_file)
     gnd_line = data['gnd_line']
@@ -280,12 +275,12 @@ for filename in os.listdir(json_folder_path):
                     cv2.putText(frame, str(keypoint_num), point_to_draw, cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0, 255, 0), 2, cv2.LINE_AA)
 
-            # compare with prev frame
+            # compare with prev frames
             if len(keypoints_dict_list) > 0:
                 LeftBigToe_prev_x = keypoints_dict_list[-1][19][0]
                 RightBigToe_prev_x = keypoints_dict_list[-1][22][0]
 
-                # calculate the mean of both toe keypoint
+                # calculate the mean and median of both toe keypoint
                 LeftBigToe_x_list = [item[19][0] for item in keypoints_dict_list]
                 RightBigToe_x_list = [item[22][0] for item in keypoints_dict_list]
 
@@ -341,6 +336,10 @@ for filename in os.listdir(json_folder_path):
             if len(keypoints_dict_list) > buffer_size:
                 keypoints_dict_list.pop(0)
 
+            # draw CM
+            cmpt = bodyCM(keypoints_dict)
+            cv2.circle(frame, cmpt, 2, (255, 255, 255), 2)
+            cv2.putText(frame, "CM", cmpt, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
             # detect if foot lifted
             if not start_trigger and not five_meter_trigger:
@@ -356,7 +355,7 @@ for filename in os.listdir(json_folder_path):
                     start_frame = frame_number
                     start_trigger = True
                     start_foot = "right"
-
+            print("start foot", start_foot, file=log_file)
 
             # Performance variables: detect if cross line
             if direction == "left" and start_trigger:
@@ -394,7 +393,7 @@ for filename in os.listdir(json_folder_path):
                             print("left", frame_number)
 
                             # touch down distance
-                            step.touchDown_cm_coord = bodyCM(keypoints_dict)
+                            step.touchDown_cm_coord = cmpt
                             cv2.circle(frame, step.touchDown_cm_coord, 2, (0, 0, 255), 2)
                             cv2.putText(frame, "CM", step.touchDown_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
                                         1, (0, 0, 255), 2, cv2.LINE_AA)
@@ -412,7 +411,7 @@ for filename in os.listdir(json_folder_path):
                             # toe off distance
                             if step.toeOff_dist == 0:
                                 print("toe off")
-                                step.toeOff_cm_coord = bodyCM(keypoints_dict)
+                                step.toeOff_cm_coord = cmpt
                                 cv2.circle(frame, step.toeOff_cm_coord, 2, (0, 0, 255), 2)
                                 cv2.putText(frame, "CM", step.toeOff_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
                                             1, (0, 0, 255), 2, cv2.LINE_AA)
@@ -421,13 +420,13 @@ for filename in os.listdir(json_folder_path):
                     elif step_start and toe_off:    # enf of step
                         print("end step")
                         step.step_end_coord = keypoints_dict[22]
-                        end_cm = bodyCM(keypoints_dict)
+                        end_cm = cmpt
                         cv2.circle(frame, end_cm, 2, (0, 0, 255), 2)
                         cv2.putText(frame, "CM", end_cm, cv2.FONT_HERSHEY_SIMPLEX,
                                     1, (0, 0, 255), 2, cv2.LINE_AA)
+                        print("toe off cm coord check", step.toeOff_cm_coord)
                         step.flight_length = dist_flight(end_cm[0], step.toeOff_cm_coord[0])
                         step.end_frame = int(frame_number)
-                        print(f'{str(step)}, frame {int(frame_number)}')
                         steps.append(step)
                         step_start = False
                         start_foot = "right"
@@ -443,7 +442,7 @@ for filename in os.listdir(json_folder_path):
                             print("right", frame_number)
 
                             # touch down distance
-                            step.touchDown_cm_coord = bodyCM(keypoints_dict)
+                            step.touchDown_cm_coord = cmpt
                             cv2.circle(frame, step.touchDown_cm_coord, 2, (0, 0, 255), 2)
                             cv2.putText(frame, "CM", step.touchDown_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
                                         1, (0, 0, 255), 2, cv2.LINE_AA)
@@ -461,7 +460,7 @@ for filename in os.listdir(json_folder_path):
                             # toe off distance
                             if step.toeOff_dist == 0:
                                 print(f"toe off {frame_number}")
-                                step.toeOff_cm_coord = bodyCM(keypoints_dict)
+                                step.toeOff_cm_coord = cmpt
                                 cv2.circle(frame, step.toeOff_cm_coord, 2, (0, 0, 255), 2)
                                 cv2.putText(frame, "CM", step.toeOff_cm_coord, cv2.FONT_HERSHEY_SIMPLEX,
                                             1, (0, 0, 255), 2, cv2.LINE_AA)
@@ -470,13 +469,13 @@ for filename in os.listdir(json_folder_path):
                     elif step_start and toe_off:
                         print(f"end step right {frame_number}")
                         step.step_end_coord = keypoints_dict[19]
-                        end_cm = bodyCM(keypoints_dict)
+                        end_cm = cmpt
                         cv2.circle(frame, end_cm, 2, (0, 0, 255), 2)
                         cv2.putText(frame, "CM", end_cm, cv2.FONT_HERSHEY_SIMPLEX,
                                     1, (0, 0, 255), 2, cv2.LINE_AA)
+                        print("toe off cm coord check", step.toeOff_cm_coord)
                         step.flight_length = dist_flight(end_cm[0], step.toeOff_cm_coord[0])
                         step.end_frame = int(frame_number)
-                        print(f'{str(step)}, frame {int(frame_number)}')
                         steps.append(step)
                         step_start = False
                         start_foot = "left"
@@ -521,8 +520,14 @@ for filename in os.listdir(json_folder_path):
 # cv2.imshow(f"{frame_number}", frame)
 # cv2.waitKey(0)
 
+for step in steps:
+    step.step_length = abs(step.step_start_coord[0] - step.step_end_coord[0])
+    step.contact_time = step.step_contact_counter/fps
+    step.flight_time = step.step_flight_counter/fps
+    step.step_rate = 1/(step.contact_time + step.flight_time)
+
 print('\nSummary:', file=log_file)
-print(f"pref_offset: {perf_offset}",  file=log_file)
+print(f"perf_offset: {perf_offset}",  file=log_file)
 print(f"step_offset: {step_offset}", file=log_file)
 print(f"start frame {int(start_frame)}", file=log_file)
 print(f"five meters {five_meter_counter}", file=log_file)
