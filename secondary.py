@@ -101,7 +101,8 @@ def bodyCM(keypoints_dict):
     else:
         mid_x = (trunk_x[mid_ind - 1] + trunk_x[mid_ind]) // 2
         mid_y = (trunk_y[mid_ind - 1] + trunk_y[mid_ind]) // 2
-    print("bodyCM:", mid_x, mid_y)
+    # print("bodyCM:", mid_x, mid_y)
+    logging.info(f"bodyCM: {mid_x}, {mid_y}")
     return mid_x, mid_y
 
 
@@ -124,6 +125,7 @@ class stepData():
     step_start_coord = ()
     step_end_coord = ()
     step_length = 0
+    step_length_r = 0
 
     step_contact_counter = 0
     step_flight_counter = 0
@@ -137,6 +139,11 @@ class stepData():
     flight_length = 0
     touchDown_cm_coord = ()
     toeOff_cm_coord = ()
+
+    touchDown_dist_r = 0
+    toeOff_dist_r = 0
+    contact_length_r = 0
+    flight_length_r = 0
 
     def __init__(self, start_frame):
         self.start_frame = start_frame
@@ -158,19 +165,19 @@ class stepData():
     def __str__(self):
         return f'start: frame {self.start_frame} {self.step_start_coord}, ' \
                f'end: frame {self.end_frame} {self.step_end_coord}, ' \
-               f'step length: {self.step_length}, ' \
-               f'contact frames: {self.step_contact_counter}, ' \
-               f'flight frames: {self.step_flight_counter}' \
-               f'\ncontact time: {self.contact_time}, ' \
+               f'step length: {self.step_length} --> {self.step_length_r}, ' \
+               f'\ncontact frames: {self.step_contact_counter}, ' \
+               f'flight frames: {self.step_flight_counter}, ' \
+               f'contact time: {self.contact_time}, ' \
                f'flight time: {self.flight_time}, ' \
                f'step rate: {self.step_rate}' \
-               f'\ntouch down dist: {self.touchDown_dist}, ' \
-               f'toe off dist: {self.toeOff_dist}, ' \
-               f'contact length: {self.contact_length}, ' \
-               f'flight length: {self.flight_length}'
+               f'\ntouch down dist: {self.touchDown_dist} --> {self.touchDown_dist_r}, ' \
+               f'toe off dist: {self.toeOff_dist} --> {self.toeOff_dist_r}, ' \
+               f'contact length: {self.contact_length} --> {self.toeOff_dist_r}, ' \
+               f'flight length: {self.flight_length} --> {self.flight_length_r}'
 
 
-video_name = "s2"  # without extension
+video_name = "s4_3"  # without extension
 fps = 240
 save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
@@ -188,13 +195,36 @@ logg_file = f"logs/{video_name}_{time_now}.log"
 targets = logging.StreamHandler(sys.stdout), logging.FileHandler(logg_file)
 logging.basicConfig(format='%(message)s', level=logging.INFO, handlers=targets)
 
+
 ## define lines
 with open(config_file_path, 'r') as json_file:
     data = json.load(json_file)
     gnd_line = data['gnd_line']
     five_meter_line = data['five_meter_line']
     ten_meter_line = data['ten_meter_line']
+    start_line = data['start_line']
     direction = data['direction']  # direction towards
+
+
+## calculate distance ratio
+# calculate x coordinate of where start line and gnd line meets
+# calculate px between x coordinate of 5 metre line and start line
+slope_gnd = (gnd_line[0][1] - gnd_line[1][1]) / (gnd_line[0][0] - gnd_line[1][0])
+slope_start = (start_line[0][1] - start_line[1][1]) / (start_line[0][0] - start_line[1][0])
+intercept_gnd_line = gnd_line[0][1] - slope_gnd * gnd_line[0][0]
+intercept_start_line = start_line[0][1] - slope_start * start_line[0][0]
+x_start = (intercept_start_line - intercept_gnd_line) / (slope_gnd - slope_start)
+print(x_start)
+
+slope_5m = (five_meter_line[0][1] - five_meter_line[1][1]) / (five_meter_line[0][0] - five_meter_line[1][0])
+intercept_5m_line = five_meter_line[0][1] - slope_5m * five_meter_line[0][0]
+x_5m = (intercept_5m_line - intercept_gnd_line) / (slope_gnd - slope_5m)
+print(x_5m)
+
+px_5m = abs(x_start - x_5m)
+ratio_px_5m = 5/px_5m
+print(f"px to 5m: {px_5m}, ratio = {ratio_px_5m}",)
+print(f"px to 5m: {px_5m}, ratio = {ratio_px_5m}", file=log_file)
 
 ## init frame counters
 # Performance variables: time to 5m and 10m
@@ -251,7 +281,7 @@ for filename in os.listdir(json_folder_path):
         try:
             keypoints = json_data['people'][0]['pose_keypoints_2d']
             # number of people check
-            print(f"person in frame {frame_number}: {len(json_data['people'])}")
+            # print(f"person in frame {frame_number}: {len(json_data['people'])}")
             logging.info(f"person in frame {frame_number}: {len(json_data['people'])}")
 
             for p in json_data['people']:
@@ -307,7 +337,7 @@ for filename in os.listdir(json_folder_path):
                 # swap the x coord of keypoints if differ by more than the margin
                 swap_margin = 40
                 mid_swap_margin = 60
-                print(frame_number, "before swap", keypoints_dict[19], keypoints_dict[22])
+                # print(frame_number, "before swap", keypoints_dict[19], keypoints_dict[22])
                 logging.info(f"{frame_number} before swap {keypoints_dict[19]} {keypoints_dict[22]}")
                 prev_bool = keypoints_dict[19][0] > LeftBigToe_prev_x + swap_margin \
                             or keypoints_dict[22][0] > RightBigToe_prev_x + swap_margin \
@@ -330,7 +360,7 @@ for filename in os.listdir(json_folder_path):
                     tmp = keypoints_dict[19]
                     keypoints_dict[19] = keypoints_dict[22]
                     keypoints_dict[22] = tmp
-                    print("after swap", keypoints_dict[19], keypoints_dict[22])
+                    # print("after swap", keypoints_dict[19], keypoints_dict[22])
                     logging.info(f"after swap {keypoints_dict[19]} {keypoints_dict[22]}")
                     cv2.circle(frame, keypoints_dict[19], 2, (0, 0, 255), 2)
                     cv2.putText(frame, str(19), keypoints_dict[19], cv2.FONT_HERSHEY_SIMPLEX,
@@ -365,7 +395,8 @@ for filename in os.listdir(json_folder_path):
                     start_frame = frame_number
                     start_trigger = True
                     start_foot = "right"
-            print("start foot", start_foot, file=log_file)
+            # print("start foot", start_foot)
+            logging.info(f"start foot {start_foot}")
 
             # Performance variables: detect if cross line
             if direction == "left" and start_trigger:
@@ -520,6 +551,7 @@ for filename in os.listdir(json_folder_path):
             cv2.line(frame, gnd_line[0], gnd_line[1], (0, 0, 255), 2)
             cv2.line(frame, five_meter_line[0], five_meter_line[1], (0, 0, 255), 2)
             cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
+            cv2.line(frame, start_line[0], start_line[1], (0, 0, 255), 2)
             cv2.imshow('frame', frame)
             if save_frames:
                 video_writer.write(frame)
@@ -537,12 +569,23 @@ for filename in os.listdir(json_folder_path):
 # cv2.imshow(f"{frame_number}", frame)
 # cv2.waitKey(0)
 
+
+## conversion of frame counters and pixels into required unit
+# can be incoporated into logic: calculate on each step end
 for step in steps:
     step.step_length = abs(step.step_start_coord[0] - step.step_end_coord[0])
     step.contact_time = step.step_contact_counter / fps
     step.flight_time = step.step_flight_counter / fps
     step.step_rate = 1 / (step.contact_time + step.flight_time)
 
+    step.step_length_r = step.step_length * ratio_px_5m
+    step.touchDown_dist_r = step.touchDown_dist * ratio_px_5m
+    step.toeOff_dist_r = step.touchDown_dist * ratio_px_5m
+    step.contact_length_r = step.contact_length * ratio_px_5m
+    step.flight_length_r = step.flight_length * ratio_px_5m
+
+
+## print to summary log file
 print('\nSummary:', file=log_file)
 print(f"perf_offset: {perf_offset}", file=log_file)
 print(f"step_offset: {step_offset}", file=log_file)

@@ -18,7 +18,7 @@ def mousePoint(event,x,y,flags,params):
         cv2.line(frame, mouse_pts[0], mouse_pts[1], (0, 0, 255), 2)
         counter = 0
         mouse_pts = []
-    if len(line_pts) == 3:
+    if len(line_pts) == 4:
         cv2.setMouseCallback("frame", lambda *args: None)
         cv2.putText(frame, end_txt, (0, 30 * len(instruction_text) + 30), cv2.FONT_HERSHEY_SIMPLEX,
                     1, (0, 0, 255), 2, cv2.LINE_AA)
@@ -37,7 +37,8 @@ instruction_text = ["Press the arrow key of the direction the player is running"
                     "Click the lines in the following order: ",
                     "1. Ground line - make sure it touches the player's toes",
                     "2. 5 metre line ",
-                    "3. 10 metre line "
+                    "3. 10 metre line ",
+                    "4. start line"
                     ]
 end_txt = "lines recorded in file, press q to exit"
 
