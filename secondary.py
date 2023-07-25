@@ -186,7 +186,7 @@ config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}-{time_now}.avi"
 output_frames_folder = f"output_frames/{video_name}-{time_now}"
 
-if not os.path.exists(output_frames_folder):
+if not os.path.exists(output_frames_folder) and save_frames:
     os.makedirs(output_frames_folder)
 
 # logfile

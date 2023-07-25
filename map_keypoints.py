@@ -63,11 +63,15 @@ def is_right_of_line(point, line):
         return False
 
 
-video_name = "s4"   # without extension
+video_name = "P3"   # without extension
 folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}.avi"
 output_frames = f"output_frames/{video_name}"
+
+# create folders
+if not os.path.exists(output_frames):
+    os.makedirs(output_frames)
 
 # # define detection area
 # five_meter = [[965, 610], [965, 715], [1860, 685], [1580, 615]]
@@ -88,18 +92,18 @@ output_frames = f"output_frames/{video_name}"
 # five_meter_line = [[960, 330], [960, 805]]
 # ten_meter_line = [[195, 330], [195, 805]]
 # direction = "left"  # direction towards
-with open(config_file_path, 'r') as json_file:
-    data = json.load(json_file)
-    gnd_line = data['gnd_line']
-    five_meter_line = data['five_meter_line']
-    ten_meter_line = data['ten_meter_line']
-    direction = "left"  # direction towards
+# with open(config_file_path, 'r') as json_file:
+#     data = json.load(json_file)
+#     gnd_line = data['gnd_line']
+#     five_meter_line = data['five_meter_line']
+#     ten_meter_line = data['ten_meter_line']
+#     direction = "left"  # direction towards
 
 # init frame counters
-start_trigger = False
-five_meter_trigger = False
-five_meter_counter = 0
-ten_meter_counter = 0
+# start_trigger = False
+# five_meter_trigger = False
+# five_meter_counter = 0
+# ten_meter_counter = 0
 
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 # get frame dimension
@@ -150,37 +154,37 @@ for filename in os.listdir(folder_path):
 
             # print(keypoints_dict)
 
-            # detect if foot lifted
-            if not start_trigger and not five_meter_trigger:
-                if is_above_line(keypoints_dict[0][19], gnd_line):
-                    print("LBigToe off ground", frame_number)
-                    start_trigger = True
-                elif is_above_line(keypoints_dict[0][22], gnd_line):
-                    print("RBigToe off ground", frame_number)
-                    start_trigger = True
-
-            # detect if cross line
-            if direction == "left" and start_trigger:
-                ten_meter_counter += 1
-                if not five_meter_trigger:
-                    five_meter_counter += 1
-                if is_left_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                    print("five meters", five_meter_counter)
-                    five_meter_trigger = True
-                elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
-                    print("ten meters", ten_meter_counter)
-                    start_trigger = False
-
-            elif direction == "right" and start_trigger:
-                ten_meter_counter += 1
-                if not five_meter_trigger:
-                    five_meter_counter += 1
-                if is_right_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
-                    print("five meters", five_meter_counter)
-                    five_meter_trigger = True
-                elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
-                    print("ten meters", ten_meter_counter)
-                    start_trigger = False
+            # # detect if foot lifted
+            # if not start_trigger and not five_meter_trigger:
+            #     if is_above_line(keypoints_dict[0][19], gnd_line):
+            #         print("LBigToe off ground", frame_number)
+            #         start_trigger = True
+            #     elif is_above_line(keypoints_dict[0][22], gnd_line):
+            #         print("RBigToe off ground", frame_number)
+            #         start_trigger = True
+            #
+            # # detect if cross line
+            # if direction == "left" and start_trigger:
+            #     ten_meter_counter += 1
+            #     if not five_meter_trigger:
+            #         five_meter_counter += 1
+            #     if is_left_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
+            #         print("five meters", five_meter_counter)
+            #         five_meter_trigger = True
+            #     elif is_left_of_line(keypoints_dict[0][8], ten_meter_line):
+            #         print("ten meters", ten_meter_counter)
+            #         start_trigger = False
+            #
+            # elif direction == "right" and start_trigger:
+            #     ten_meter_counter += 1
+            #     if not five_meter_trigger:
+            #         five_meter_counter += 1
+            #     if is_right_of_line(keypoints_dict[0][8], five_meter_line) and not five_meter_trigger:
+            #         print("five meters", five_meter_counter)
+            #         five_meter_trigger = True
+            #     elif is_right_of_line(keypoints_dict[0][8], ten_meter_line):
+            #         print("ten meters", ten_meter_counter)
+            #         start_trigger = False
 
         except IndexError:
             # print("no person detected in this frame", json_data)
@@ -195,9 +199,9 @@ for filename in os.listdir(folder_path):
             # cv2.polylines(frame, [five_meter], isClosed=True, color=(0, 255, 0), thickness=2)
 
             # draw line on frame
-            cv2.line(frame, gnd_line[0], gnd_line[1], (0, 0, 255), 2)
-            cv2.line(frame, five_meter_line[0], five_meter_line[1], (0, 0, 255), 2)
-            cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
+            # cv2.line(frame, gnd_line[0], gnd_line[1], (0, 0, 255), 2)
+            # cv2.line(frame, five_meter_line[0], five_meter_line[1], (0, 0, 255), 2)
+            # cv2.line(frame, ten_meter_line[0], ten_meter_line[1], (0, 0, 255), 2)
             cv2.imshow('frame', frame)
             video_writer.write(frame)
             cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)

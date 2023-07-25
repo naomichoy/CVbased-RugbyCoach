@@ -165,6 +165,7 @@ python/
 output_video/
 output_frames/
 logs/
+output_mask_yolo/
 
 
 
