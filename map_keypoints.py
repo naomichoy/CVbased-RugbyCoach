@@ -4,6 +4,7 @@ import json
 import cv2
 from PIL import Image
 import numpy as np
+import time
 
 def read_json_file(file_path):
     with open(file_path) as file:
@@ -115,7 +116,9 @@ video_writer = cv2.VideoWriter(output_video,
                                30,
                                (width, height))
 
+start_time = time.time()
 for filename in os.listdir(folder_path):
+    file_start_time = time.time()
     # Check if the path is a file
     if os.path.isfile(os.path.join(folder_path, filename)):
         # read JSON file
@@ -205,6 +208,12 @@ for filename in os.listdir(folder_path):
             cv2.imshow('frame', frame)
             video_writer.write(frame)
             cv2.imwrite(f"{output_frames}/{frame_number}.jpg", frame)
+
+            print("one frame", time.time()-file_start_time)
+
+            if frame_number == str(500).zfill(12):
+                print(time.time() - start_time)
+                cv2.waitKey(0)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
