@@ -199,6 +199,15 @@ for filename in os.listdir(json_folder_path):
             cv2.circle(frame, cmpt, 2, (255, 255, 255), 2)
             cv2.putText(frame, "CM", cmpt, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
+            # read ball mask
+            mask_json = f'{frame_number}.json'
+            mask_path = os.path.join("output_mask_yolo", video_name, mask_json)
+            mask_data = read_json_file(mask_path)
+            # print(mask_data)
+            mask_xy = mask_data['mask']
+            bbox_xywh = mask_data['bbox']
+            conf = mask_data['conf']
+
         except IndexError:
             # print("no person detected in this frame", json_data)
             pass
