@@ -6,12 +6,12 @@ import cv2
 import math
 from ultralytics import YOLO
 
-def calculate_center(x, y, w, h):
-    cx = x + (w / 2)
-    cy = y + (h / 2)
-    return cx, cy
+def calculate_bottom(x, y, w, h):
+    bx = x + (w / 2)
+    by = y + (h / 2)
+    return bx, by
 
-video_name = "P1"     # without extension
+video_name = "P3"     # without extension
 img = './test_images/frame_000000002491.jpg'
 vid = f"./test_images/{video_name}.mp4"
 fps = 500
@@ -48,8 +48,8 @@ model = YOLO('yolov8l-seg.pt')
 
 results = model(vid, show=True, save=True, device=0, stream=True, classes=[0, 32], conf=0.38, show_conf=True)
 # Process results generator
-for i, result in enumerate(results):
-    print(f'frame {i}')
+for frame_number, result in enumerate(results):
+    print(f'frame {frame_number}')
     boxes = result.boxes  # Boxes object for bbox outputs
     masks = result.masks  # Masks object for segmentation masks outputs
     keypoints = result.keypoints  # Keypoints object for pose outputs
@@ -67,12 +67,10 @@ for i, result in enumerate(results):
         if len(indices) > 1:
             ## disregard with distance from body before kick
             # person_xywh = np.array(boxes[0].xywh.tolist())[0]
-            # person_c = calculate_center(person_xywh[0], person_xywh[1], person_xywh[2], person_xywh[3])
             # ball_dist_to_person = []
             # for i, ii in enumerate(indices):
             #     ball_xywh = np.array(boxes[ii].xywh.tolist())[0]
-            #     ball_c = calculate_center(ball_xywh[0], ball_xywh[1], ball_xywh[2], ball_xywh[3])
-            #     distance = math.hypot(person_c[0] - ball_c[0], person_c[1] - ball_c[1])
+            #     distance = math.hypot(person_xywh[0] - ball_xywh[0], person_xywh[1] - ball_xywh[1])
             #     ball_dist_to_person.append(distance)
             # iind = ball_dist_to_person.index(min(ball_dist_to_person))
 
@@ -100,7 +98,9 @@ for i, result in enumerate(results):
 
     print(data)
     if not test_run:
-        output_file = f'{str(i).zfill(12)}.json'
+        output_file = f'{str(frame_number).zfill(12)}.json'
         output_file_path = os.path.join(output_mask_folder, output_file)
+        print(output_file_path)
         with open(output_file_path, 'w') as f:
             json.dump(data, f)
+
