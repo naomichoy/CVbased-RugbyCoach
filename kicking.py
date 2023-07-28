@@ -50,7 +50,20 @@ def drawTrajectory(frame, ball_c_list):
             cv2.circle(frame, pt, 2, (32, 165, 218), 2)
 
 
-video_name = "P1"  # without extension
+def calculate_bottom(bbox_xywh):
+    x, y, w, h = bbox_xywh
+    bx = x + (w / 2)
+    by = y + (h / 2)
+    return bx, by
+
+
+def euclidean_distance(pt1, pt2):
+    x1, y1 = pt1
+    x2, y2 = pt2
+    return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+
+video_name = "P3"  # without extension
 fps = 500
 save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
@@ -88,6 +101,10 @@ if save_frames:
 keypoints_dict_list = []
 buffer_size = 5
 ball_c_list = []
+
+# kicking control params
+touch_thres = 10
+kick_start = False
 
 for filename in os.listdir(json_folder_path):
     # Check if the path is a file
@@ -138,7 +155,7 @@ for filename in os.listdir(json_folder_path):
                     cv2.putText(frame, str(keypoint_num), point_to_draw, cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0, 255, 0), 2, cv2.LINE_AA)
 
-            # compare with prev frames
+            # compare with prev frames to swap
             if len(keypoints_dict_list) > 0:
                 LeftBigToe_prev_x = keypoints_dict_list[-1][19][0]
                 RightBigToe_prev_x = keypoints_dict_list[-1][22][0]
@@ -218,6 +235,28 @@ for filename in os.listdir(json_folder_path):
             if len(bbox_xywh) > 0:
                 ball_c_list.append((round(bbox_xywh[0]),round(bbox_xywh[1])))
                 # print(ball_c_list)
+                bx, by = calculate_bottom(bbox_xywh)
+            else: # get median coordinate of pass frames
+                bx, by, = 500,  500  # test arbitrary
+            # determine kicking foot and ball dropped
+            ball_drop = True
+            kicking_foot = "right"
+            # determine when kick_start
+            if ball_drop:
+                if kicking_foot == "right" and keypoints_dict[22][1] - by > touch_thres:
+                    kick_start = True
+                if kicking_foot == "left" and keypoints_dict[19][1] -by > touch_thres:
+                    pass
+
+            if kick_start:
+                velocity_sum = 0
+                for i in range(-1, -6, -1):
+                    # print(i)
+                    displacement = euclidean_distance(ball_c_list[i], ball_c_list[i-1])
+                    velocity = displacement / fps   # wrong equation?
+                    velocity_sum += velocity
+                velocity_avg = velocity_sum / 5
+                print(f"ball release velocity: {velocity_avg}")
 
         except IndexError:
             # print("no person detected in this frame", json_data)
