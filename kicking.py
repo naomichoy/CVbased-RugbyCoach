@@ -44,9 +44,15 @@ def bodyCM(keypoints_dict):
     return mid_x, mid_y
 
 
+def drawTrajectory(frame, ball_c_list):
+    if len(ball_c_list) > 0:
+        for pt in ball_c_list:
+            cv2.circle(frame, pt, 2, (32, 165, 218), 2)
+
+
 video_name = "P1"  # without extension
 fps = 500
-save_frames = False
+save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
@@ -81,6 +87,7 @@ if save_frames:
 # init keypoints list
 keypoints_dict_list = []
 buffer_size = 5
+ball_c_list = []
 
 for filename in os.listdir(json_folder_path):
     # Check if the path is a file
@@ -208,6 +215,10 @@ for filename in os.listdir(json_folder_path):
             bbox_xywh = mask_data['bbox']
             conf = mask_data['conf']
 
+            if len(bbox_xywh) > 0:
+                ball_c_list.append((round(bbox_xywh[0]),round(bbox_xywh[1])))
+                # print(ball_c_list)
+
         except IndexError:
             # print("no person detected in this frame", json_data)
             pass
@@ -216,6 +227,7 @@ for filename in os.listdir(json_folder_path):
             # frame number
             cv2.putText(frame, str(frame_number), (0, 30), cv2.FONT_HERSHEY_SIMPLEX,
                         1, (0, 0, 255), 2, cv2.LINE_AA)
+            drawTrajectory(frame, ball_c_list)
 
             cv2.imshow('frame', frame)
             if save_frames:
