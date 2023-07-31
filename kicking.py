@@ -65,6 +65,7 @@ def euclidean_distance(pt1, pt2):
 
 video_name = "P3"  # without extension
 fps = 500
+true_dist = 0.38   # P1: 0.45m  P2: 0.4m  P3: 0.38m
 dist_ratio = 1
 
 save_frames = False
@@ -251,12 +252,13 @@ for filename in os.listdir(json_folder_path):
             cv2.circle(frame, (cmpt[0], int(knee_thres)), 2, (255, 255, 255), 2)
             if bbox_xywh[1] > knee_thres:
                 if len(ball_c_list) > 1:
-                    dy = ball_c_list[-1][1] - ball_c_list[-2][1]
+                    dy = ball_c_list[-1][1] - ball_c_list[-2][1]    # TODO: * -1 ?
                     dx = ball_c_list[-1][0] - ball_c_list[-2][0]
                     if dx == 0:
                         dydx = 0
                     else:
                         dydx = dy / dx
+                        logging.info(f'dydx: {dydx}')
                     if dydx < 0:
                         logging.info("-ve gradient")
                         ball_drop = True
@@ -273,7 +275,8 @@ for filename in os.listdir(json_folder_path):
                 ball_velocity_sum = 0
                 for i in range(-1, -6, -1):
                     # print(i)
-                    ball_displacement = euclidean_distance(ball_c_list[i], ball_c_list[i-1])
+                    m = (ball_c_list[i][1] - ball_c_list[i-1][1]) / (ball_c_list[i][0] - ball_c_list[i-1][0]) * -1
+                    ball_displacement = euclidean_distance(ball_c_list[i], ball_c_list[i-1]) * m
                     ball_velocity = ball_displacement * dist_ratio / (1/fps)  # wrong formula?? need to multiply by ratio
                     ball_velocity_sum += ball_velocity
                 ball_velocity_avg = ball_velocity_sum / 5
@@ -281,15 +284,15 @@ for filename in os.listdir(json_folder_path):
 
             #   foot speed
             if ball_drop and not ball_leave:
-                foot_velocity_sum = 0
+                foot_speed_sum = 0
                 for i in range(-1, -(len(keypoints_dict_list) - 1), -1):
                     if kicking_foot == "right":
                         # use right ankle point
-                        foot_displacement = euclidean_distance(keypoints_dict_list[i][11], keypoints_dict_list[i - 1][11])
-                        foot_velocity = foot_displacement * dist_ratio / (1/fps)
-                        foot_velocity_sum += foot_velocity
-                foot_velocity_avg = foot_velocity_sum / 5
-                logging.info(f"foot velocity: {foot_velocity_avg}")
+                        foot_displacement = euclidean_distance(keypoints_dict_list[i][11], keypoints_dict_list[i-1][11])
+                        foot_speed = foot_displacement * dist_ratio / (1/fps)
+                        foot_speed_sum += foot_speed
+                foot_speed_avg = foot_speed_sum / 5
+                logging.info(f"foot velocity: {foot_speed_avg}")
 
         except IndexError:
             # print("no person detected in this frame", json_data)
