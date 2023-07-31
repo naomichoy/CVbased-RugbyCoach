@@ -104,7 +104,8 @@ ball_c_list = []
 
 # kicking control params
 touch_thres = 10
-kick_start = False
+ball_leave = False
+ball_drop = False
 
 for filename in os.listdir(json_folder_path):
     # Check if the path is a file
@@ -236,27 +237,45 @@ for filename in os.listdir(json_folder_path):
                 ball_c_list.append((round(bbox_xywh[0]),round(bbox_xywh[1])))
                 # print(ball_c_list)
                 bx, by = calculate_bottom(bbox_xywh)
-            else: # get median coordinate of pass frames
+            else:   # get median coordinate of pass frames
                 bx, by, = 500,  500  # test arbitrary
+
             # determine kicking foot and ball dropped
-            ball_drop = True
+            # detect when free fall happens
+            # filter free fall detection noise, lower than both knee point
+            RKnee3 = keypoints_dict[10][1] + (keypoints_dict[11][1] - keypoints_dict[10][1]) / 4
+            LKnee3 = keypoints_dict[13][1] + (keypoints_dict[14][1] - keypoints_dict[13][1]) / 4
+            knee_thres = max(RKnee3, LKnee3)
+            cv2.circle(frame, (cmpt[0], int(knee_thres)), 2, (255, 255, 255), 2)
+            if bbox_xywh[1] > knee_thres:
+                if len(ball_c_list) > 1:
+                    dy = ball_c_list[-1][1] - ball_c_list[-2][1]
+                    dx = ball_c_list[-1][0] - ball_c_list[-2][0]
+                    if dx == 0:
+                        dydx = 0
+                    else:
+                        dydx = dy / dx
+                    if dydx < 0:
+                        logging.info("-ve gradient")
+                        ball_drop = True
             kicking_foot = "right"
-            # determine when kick_start
+
+            # determine when ball_leave
             if ball_drop:
                 if kicking_foot == "right" and keypoints_dict[22][1] - by > touch_thres:
-                    kick_start = True
-                if kicking_foot == "left" and keypoints_dict[19][1] -by > touch_thres:
+                    ball_leave = True
+                if kicking_foot == "left" and keypoints_dict[19][1] - by > touch_thres:
                     pass
 
-            if kick_start:
+            if ball_leave:
                 velocity_sum = 0
                 for i in range(-1, -6, -1):
                     # print(i)
                     displacement = euclidean_distance(ball_c_list[i], ball_c_list[i-1])
-                    velocity = displacement / fps   # wrong equation?
+                    velocity = displacement / (1/fps)  # wrong formula?? need to multiply by ratio
                     velocity_sum += velocity
                 velocity_avg = velocity_sum / 5
-                print(f"ball release velocity: {velocity_avg}")
+                logging.info(f"ball release velocity: {velocity_avg}")
 
         except IndexError:
             # print("no person detected in this frame", json_data)
