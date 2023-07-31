@@ -65,7 +65,9 @@ def euclidean_distance(pt1, pt2):
 
 video_name = "P3"  # without extension
 fps = 500
-save_frames = True
+dist_ratio = 1
+
+save_frames = False
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
@@ -268,14 +270,26 @@ for filename in os.listdir(json_folder_path):
                     pass
 
             if ball_leave:
-                velocity_sum = 0
+                ball_velocity_sum = 0
                 for i in range(-1, -6, -1):
                     # print(i)
-                    displacement = euclidean_distance(ball_c_list[i], ball_c_list[i-1])
-                    velocity = displacement / (1/fps)  # wrong formula?? need to multiply by ratio
-                    velocity_sum += velocity
-                velocity_avg = velocity_sum / 5
-                logging.info(f"ball release velocity: {velocity_avg}")
+                    ball_displacement = euclidean_distance(ball_c_list[i], ball_c_list[i-1])
+                    ball_velocity = ball_displacement * dist_ratio / (1/fps)  # wrong formula?? need to multiply by ratio
+                    ball_velocity_sum += ball_velocity
+                ball_velocity_avg = ball_velocity_sum / 5
+                logging.info(f"ball release velocity: {ball_velocity_avg}")
+
+            #   foot speed
+            if ball_drop and not ball_leave:
+                foot_velocity_sum = 0
+                for i in range(-1, -(len(keypoints_dict_list) - 1), -1):
+                    if kicking_foot == "right":
+                        # use right ankle point
+                        foot_displacement = euclidean_distance(keypoints_dict_list[i][11], keypoints_dict_list[i - 1][11])
+                        foot_velocity = foot_displacement * dist_ratio / (1/fps)
+                        foot_velocity_sum += foot_velocity
+                foot_velocity_avg = foot_velocity_sum / 5
+                logging.info(f"foot velocity: {foot_velocity_avg}")
 
         except IndexError:
             # print("no person detected in this frame", json_data)
