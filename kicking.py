@@ -75,10 +75,10 @@ def angle_between_vectors(vector1, vector2):
 
 
 def vector_between_points(point1, point2):
-    return point2 - point1
+    return np.array(point2) - np.array(point1)
 
 
-video_name = "P3"  # without extension
+video_name = "P3_test"  # without extension
 fps = 500
 true_dist = 0.38   # P1: 0.45m  P2: 0.4m  P3: 0.38m
 dist_ratio = 1
@@ -116,7 +116,7 @@ if save_frames:
                                    (width, height))
 
 # init keypoints list
-keypoints_dict_list = []
+keypoints_dict_list = []        # dictionary item type: tuple
 buffer_size = 5
 ball_c_list = []
 
@@ -311,28 +311,30 @@ for filename in os.listdir(json_folder_path):
 
                         # calculate direction vector from position vectors (keypoints_dict items are positional vectors)
                         # thigh angles
-                        t_prev_9_8 = vector_between_points(keypoints_dict_list[i-1][9], keypoints_dict_list[i-1][8])  # change this to horizontal??
+                        # t_prev_9_h = vector_between_points(keypoints_dict_list[i-1][9], [1,0])  # change this to horizontal??
                         t_prev_9_10 = vector_between_points(keypoints_dict_list[i-1][9], keypoints_dict_list[i-1][10])
-                        t_prev_angle = angle_between_vectors(t_prev_9_8, t_prev_9_10)
+                        t_prev_angle = angle_between_vectors([1,0], t_prev_9_10)
 
-                        t_cur_9_8 = vector_between_points(keypoints_dict_list[i][9], keypoints_dict_list[i][8])
+                        # t_cur_9_h = vector_between_points(keypoints_dict_list[i][9], [1,0])
                         t_cur_9_10 = vector_between_points(keypoints_dict_list[i][9], keypoints_dict_list[i][10])
-                        t_current_angle = angle_between_vectors(t_cur_9_8, t_cur_9_10)
+                        t_current_angle = angle_between_vectors([1,0], t_cur_9_10)
 
-                        t_angular_velocity = (t_current_angle - t_prev_angle) / (1/fps)
+                        t_angular_velocity = (t_current_angle - t_prev_angle) / (1/fps)   # check sign
                         thigh_angle_velocity_sum += t_angular_velocity
 
                         # knee angles
-                        k_prev_10_h = vector_between_points(keypoints_dict_list[i-1][10], keypoints_dict_list[i-1][8])  # TODO: change this to horizontal
-                        k_prev_10_h = vector_between_points(keypoints_dict_list[i-1][10], keypoints_dict_list[i-1][11])
-                        k_prev_angle = angle_between_vectors(k_prev_10_h, k_prev_10_h)
+                        # k_prev_10_h = vector_between_points(keypoints_dict_list[i-1][10], [1,0])  # TODO: change this to horizontal
+                        k_prev_10_11 = vector_between_points(keypoints_dict_list[i-1][10], keypoints_dict_list[i-1][11])
+                        k_prev_angle = angle_between_vectors([1,0], k_prev_10_11)
 
-                        k_cur_10_h = vector_between_points(keypoints_dict_list[i][10], keypoints_dict_list[i][8])
+                        # k_cur_10_h = vector_between_points(keypoints_dict_list[i][10], [1,0])
                         k_cur_10_11 = vector_between_points(keypoints_dict_list[i][10], keypoints_dict_list[i][11])
-                        k_current_angle = angle_between_vectors(k_cur_10_h, k_cur_10_h)
+                        k_current_angle = angle_between_vectors([1,0], k_cur_10_11)
 
-                        k_angular_velocity = (k_current_angle - k_prev_angle) / (1 / fps)
+                        k_angular_velocity = (k_current_angle - k_prev_angle) / (1 / fps)  # check sign
                         knee_angle_velocity_sum += k_angular_velocity
+
+                        # cv2.waitKey(0)
 
                 foot_speed_avg = foot_speed_sum / 5
                 thigh_angle_velocity_avg = thigh_angle_velocity_sum / 5
