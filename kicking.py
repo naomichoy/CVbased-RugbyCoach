@@ -63,6 +63,21 @@ def euclidean_distance(pt1, pt2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
 
+def angle_between_vectors(vector1, vector2):
+    dot_product = np.dot(vector1, vector2)
+    norm_vector1 = np.linalg.norm(vector1)
+    norm_vector2 = np.linalg.norm(vector2)
+
+    cos_theta = dot_product / (norm_vector1 * norm_vector2)
+    angle_rad = math.acos(cos_theta)
+    angle_deg = math.degrees(angle_rad)
+    return angle_deg
+
+
+def vector_between_points(point1, point2):
+    return point2 - point1
+
+
 video_name = "P3"  # without extension
 fps = 500
 true_dist = 0.38   # P1: 0.45m  P2: 0.4m  P3: 0.38m
@@ -282,17 +297,49 @@ for filename in os.listdir(json_folder_path):
                 ball_velocity_avg = ball_velocity_sum / 5
                 logging.info(f"ball release velocity: {ball_velocity_avg}")
 
-            #   foot speed
+            #  ball on contact. foot speed
             if ball_drop and not ball_leave:
                 foot_speed_sum = 0
+                thigh_angle_velocity_sum = 0
+                knee_angle_velocity_sum = 0
                 for i in range(-1, -(len(keypoints_dict_list) - 1), -1):
                     if kicking_foot == "right":
                         # use right ankle point
                         foot_displacement = euclidean_distance(keypoints_dict_list[i][11], keypoints_dict_list[i-1][11])
                         foot_speed = foot_displacement * dist_ratio / (1/fps)
                         foot_speed_sum += foot_speed
+
+                        # calculate direction vector from position vectors (keypoints_dict items are positional vectors)
+                        # thigh angles
+                        t_prev_9_8 = vector_between_points(keypoints_dict_list[i-1][9], keypoints_dict_list[i-1][8])  # change this to horizontal??
+                        t_prev_9_10 = vector_between_points(keypoints_dict_list[i-1][9], keypoints_dict_list[i-1][10])
+                        t_prev_angle = angle_between_vectors(t_prev_9_8, t_prev_9_10)
+
+                        t_cur_9_8 = vector_between_points(keypoints_dict_list[i][9], keypoints_dict_list[i][8])
+                        t_cur_9_10 = vector_between_points(keypoints_dict_list[i][9], keypoints_dict_list[i][10])
+                        t_current_angle = angle_between_vectors(t_cur_9_8, t_cur_9_10)
+
+                        t_angular_velocity = (t_current_angle - t_prev_angle) / (1/fps)
+                        thigh_angle_velocity_sum += t_angular_velocity
+
+                        # knee angles
+                        k_prev_10_h = vector_between_points(keypoints_dict_list[i-1][10], keypoints_dict_list[i-1][8])  # TODO: change this to horizontal
+                        k_prev_10_h = vector_between_points(keypoints_dict_list[i-1][10], keypoints_dict_list[i-1][11])
+                        k_prev_angle = angle_between_vectors(k_prev_10_h, k_prev_10_h)
+
+                        k_cur_10_h = vector_between_points(keypoints_dict_list[i][10], keypoints_dict_list[i][8])
+                        k_cur_10_11 = vector_between_points(keypoints_dict_list[i][10], keypoints_dict_list[i][11])
+                        k_current_angle = angle_between_vectors(k_cur_10_h, k_cur_10_h)
+
+                        k_angular_velocity = (k_current_angle - k_prev_angle) / (1 / fps)
+                        knee_angle_velocity_sum += k_angular_velocity
+
                 foot_speed_avg = foot_speed_sum / 5
+                thigh_angle_velocity_avg = thigh_angle_velocity_sum / 5
+                knee_angle_velocity_avg = knee_angle_velocity_sum / 5
                 logging.info(f"foot velocity: {foot_speed_avg}")
+                logging.info(f"thigh angular velocity: {thigh_angle_velocity_avg}")
+                logging.info(f"knee angular velocity: {knee_angle_velocity_avg}")
 
         except IndexError:
             # print("no person detected in this frame", json_data)
