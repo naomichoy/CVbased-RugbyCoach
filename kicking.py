@@ -3,6 +3,9 @@ import sys
 import logging
 import re
 import json
+from pathlib import Path
+import csv
+
 import cv2
 from PIL import Image
 import numpy as np
@@ -78,10 +81,19 @@ def vector_between_points(point1, point2):
     return np.array(point2) - np.array(point1)
 
 
-video_name = "P3_test"  # without extension
+def calculate_dist_ratio(keypoints, video_name):
+    config = {
+        "P1": 0.45,
+        "P2": 0.4,
+        "P3": 0.38,
+        "P3_test": 0.38
+    }
+    px_dist = euclidean_distance(keypoints[10], keypoints[11])
+    return config[video_name] / px_dist
+
+
+video_name = "P3"  # without extension
 fps = 500
-true_dist = 0.38   # P1: 0.45m  P2: 0.4m  P3: 0.38m
-dist_ratio = 1
 
 save_frames = False
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
@@ -94,11 +106,17 @@ if not os.path.exists(output_frames_folder) and save_frames:
     os.makedirs(output_frames_folder)
 
 # logfile
-log_file = open(f'logs/{video_name}_{time_now}.txt', 'w')
+# log_file = open(f'logs/{video_name}_{time_now}.txt', 'w')
 logg_file = f"logs/{video_name}_{time_now}.log"
 targets = logging.StreamHandler(sys.stdout), logging.FileHandler(logg_file)
 logging.basicConfig(format='%(message)s', level=logging.INFO, handlers=targets)
+csv_file = open(f'logs/{video_name}_{time_now}.csv', 'w', newline='')
 
+# print(f'frame number \tball release velocity \tfoot speed \tthigh angular velocity \tknee angular velocity',
+#       file=log_file)
+csvwriter = csv.writer(csv_file)
+header = ['frame number', 'ball release velocity', 'foot speed', 'thigh angular velocity', 'knee angular velocity', 'thigh angle', 'knee angle']
+csvwriter.writerow(header)
 
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 
@@ -119,6 +137,7 @@ if save_frames:
 keypoints_dict_list = []        # dictionary item type: tuple
 buffer_size = 5
 ball_c_list = []
+frames_in_contact = 0
 
 # kicking control params
 touch_thres = 10
@@ -147,6 +166,7 @@ for filename in os.listdir(json_folder_path):
             # print(f"person in frame {frame_number}: {len(json_data['people'])}")
             logging.info(f"person in frame {frame_number}: {len(json_data['people'])}")
 
+            # disregard non player people
             for p in json_data['people']:
                 next_keypoints = p['pose_keypoints_2d']
                 if not isPlayer(next_keypoints):
@@ -242,6 +262,10 @@ for filename in os.listdir(json_folder_path):
             cv2.circle(frame, cmpt, 2, (255, 255, 255), 2)
             cv2.putText(frame, "CM", cmpt, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
+            # calculate dist ratio
+            dist_ratio = calculate_dist_ratio(keypoints_dict, video_name)
+            logging.info(f'dist ratio: {dist_ratio}')
+
             # read ball mask
             mask_json = f'{frame_number}.json'
             mask_path = os.path.join("output_mask_yolo", video_name, mask_json)
@@ -286,6 +310,7 @@ for filename in os.listdir(json_folder_path):
                 if kicking_foot == "left" and keypoints_dict[19][1] - by > touch_thres:
                     pass
 
+            ball_velocity_avg = None
             if ball_leave:
                 ball_velocity_sum = 0
                 for i in range(-1, -6, -1):
@@ -298,7 +323,8 @@ for filename in os.listdir(json_folder_path):
                 logging.info(f"ball release velocity: {ball_velocity_avg}")
 
             #  ball on contact. foot speed
-            if ball_drop and not ball_leave:
+            if ball_drop:
+                frames_in_contact += 1
                 foot_speed_sum = 0
                 thigh_angle_velocity_sum = 0
                 knee_angle_velocity_sum = 0
@@ -334,6 +360,7 @@ for filename in os.listdir(json_folder_path):
                         k_angular_velocity = (k_current_angle - k_prev_angle) / (1 / fps)  # check sign
                         knee_angle_velocity_sum += k_angular_velocity
 
+                        logging.info(f'thigh: prev {t_prev_angle}, current{t_current_angle}, knee: prev {k_prev_angle}, current{k_current_angle}')
                         # cv2.waitKey(0)
 
                 foot_speed_avg = foot_speed_sum / 5
@@ -353,6 +380,13 @@ for filename in os.listdir(json_folder_path):
                         1, (0, 0, 255), 2, cv2.LINE_AA)
             drawTrajectory(frame, ball_c_list)
 
+            # print to files
+            if ball_drop and frames_in_contact < 20:
+                # print(f'{frame_number} \t{ball_velocity_avg} \t{foot_speed_avg} \t{thigh_angle_velocity_avg} \t{knee_angle_velocity_avg}',
+                        # file=log_file)
+                data_row = [frame_number, ball_velocity_avg, foot_speed_avg, thigh_angle_velocity_avg, knee_angle_velocity_avg, t_current_angle, k_current_angle]
+                csvwriter.writerow(data_row)
+
             cv2.imshow('frame', frame)
             if save_frames:
                 video_writer.write(frame)
@@ -361,4 +395,7 @@ for filename in os.listdir(json_folder_path):
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-                
+
+# log_file.close()
+csv_file.close()
+cv2.destroyAllWindows()
