@@ -173,11 +173,11 @@ class stepData():
                f'step rate: {self.step_rate}' \
                f'\ntouch down dist: {self.touchDown_dist} --> {self.touchDown_dist_r}, ' \
                f'toe off dist: {self.toeOff_dist} --> {self.toeOff_dist_r}, ' \
-               f'contact length: {self.contact_length} --> {self.toeOff_dist_r}, ' \
+               f'contact length: {self.contact_length} --> {self.contact_length_r}, ' \
                f'flight length: {self.flight_length} --> {self.flight_length_r}'
 
 
-video_name = "s4_3"  # without extension
+video_name = "s2"  # without extension
 fps = 240
 save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
@@ -580,7 +580,7 @@ for step in steps:
 
     step.step_length_r = step.step_length * ratio_px_5m
     step.touchDown_dist_r = step.touchDown_dist * ratio_px_5m
-    step.toeOff_dist_r = step.touchDown_dist * ratio_px_5m
+    step.toeOff_dist_r = step.toeOff_dist * ratio_px_5m
     step.contact_length_r = step.contact_length * ratio_px_5m
     step.flight_length_r = step.flight_length * ratio_px_5m
 
@@ -589,6 +589,7 @@ for step in steps:
 print('\nSummary:', file=log_file)
 print(f"perf_offset: {perf_offset}", file=log_file)
 print(f"step_offset: {step_offset}", file=log_file)
+print(f"ratio: {ratio_px_5m}", file=log_file)
 print(f"start frame {int(start_frame)}", file=log_file)
 print(f"five meters {five_meter_counter}", file=log_file)
 print(f"ten meters {ten_meter_counter}", file=log_file)
