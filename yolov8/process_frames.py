@@ -12,8 +12,8 @@ def calculate_bottom(x, y, w, h):
     return bx, by
 
 video_name = "P3"     # without extension
-img = './test_images/frame_000000002491.jpg'
-vid = f"./test_images/{video_name}.mp4"
+img = '../examples/media/frame_000000002491.jpg'
+vid = f"../examples/media/{video_name}.mp4"
 fps = 500
 input_folder = os.path.join("test_images", video_name)
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
