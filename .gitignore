@@ -167,5 +167,7 @@ output_frames/
 logs/
 output_mask_yolo/
 
+# weights
+*.pt
 
 
