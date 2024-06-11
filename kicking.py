@@ -95,7 +95,7 @@ def calculate_dist_ratio(keypoints, video_name):
 video_name = "P3"  # without extension
 fps = 500
 
-save_frames = False
+save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
 json_folder_path = f"output/{video_name}"
 config_file_path = f"config/{video_name}.json"
@@ -190,7 +190,9 @@ for filename in os.listdir(json_folder_path):
                 keypoints_dict[keypoint_num] = point_to_draw
                 # draw on points on frame
                 cv2.circle(frame, point_to_draw, 2, (0, 255, 0), 2)
-                if keypoint_num == 19 or keypoint_num == 22:  # indicating which toe detected
+                # indicating which toe detected
+                if keypoint_num == 19 or keypoint_num == 22 \
+                        or keypoint_num == 9 or keypoint_num == 10 or keypoint_num == 11:   # right leg
                     cv2.putText(frame, str(keypoint_num), point_to_draw, cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0, 255, 0), 2, cv2.LINE_AA)
 
