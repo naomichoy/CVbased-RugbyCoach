@@ -1,4 +1,6 @@
 import os
+import argparse
+from pathlib import Path
 import cv2
 from PIL import Image
 
@@ -26,17 +28,27 @@ def extract_frames(video_path, output_path):
     video.release()
 
 
-video_name = "s4.mov"       # with extension name
 
-# Provide the path to the video file
-video_path = f"examples/media/{video_name}"
 
-# Provide the path to the output directory where the frames will be saved
-output_path = f"frames/{video_name.split('.')[0]}"
-print("output frames to", output_path)
 
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", required=True,
+                        help='file name of the video to be processed, with extension included eg. p1.mp4')
+    args = parser.parse_args()
 
-# Call the function to extract frames
-extract_frames(video_path, output_path)
+    video_name = args.file  # make sure extension name included
+    # video_name = 'P1.mp4'
+
+    # Provide the path to the video file
+    video_path = f"examples/media/{video_name}"
+
+    # Provide the path to the output directory where the frames will be saved
+    output_path = f"frames/{video_name.split('.')[0]}"
+    print("output frames to", output_path)
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    # Call the function to extract frames
+    extract_frames(video_path, output_path)

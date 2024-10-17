@@ -181,7 +181,7 @@ video_name = "s2"  # without extension
 fps = 240
 save_frames = True
 time_now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-json_folder_path = f"output/{video_name}"
+json_folder_path = f"output/{video_name}" # openpose keypoint outputs
 config_file_path = f"config/{video_name}.json"
 output_video = f"output_video/{video_name}-{time_now}.avi"
 output_frames_folder = f"output_frames/{video_name}-{time_now}"
@@ -190,13 +190,16 @@ if not os.path.exists(output_frames_folder) and save_frames:
     os.makedirs(output_frames_folder)
 
 # logfile
+if not os.path.exists('logs/'):
+    os.makedirs('logs/')
+
 log_file = open(f'logs/{video_name}_{time_now}.txt', 'w')
 logg_file = f"logs/{video_name}_{time_now}.log"
 targets = logging.StreamHandler(sys.stdout), logging.FileHandler(logg_file)
 logging.basicConfig(format='%(message)s', level=logging.INFO, handlers=targets)
 
 
-## define lines
+## define lines from config
 with open(config_file_path, 'r') as json_file:
     data = json.load(json_file)
     gnd_line = data['gnd_line']
@@ -259,6 +262,7 @@ if save_frames:
 
 # init keypoints list
 keypoints_dict_list = []
+# set buffer size for keypoint filtering
 buffer_size = 5
 
 ## main loop

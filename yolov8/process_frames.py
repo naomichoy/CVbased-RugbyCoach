@@ -12,7 +12,7 @@ def calculate_bottom(x, y, w, h):
     return bx, by
 
 video_name = "P3"     # without extension
-img = '../examples/media/frame_000000002491.jpg'
+# img = '../examples/media/frame_000000002491.jpg'
 vid = f"../examples/media/{video_name}.mp4"
 fps = 500
 input_folder = os.path.join("test_images", video_name)
@@ -97,6 +97,8 @@ for frame_number, result in enumerate(results):
         data['conf'] = []
 
     print(data)
+
+    # save yolo predictions of the frame to JSON file
     if not test_run:
         output_file = f'{str(frame_number).zfill(12)}.json'
         output_file_path = os.path.join(output_mask_folder, output_file)
