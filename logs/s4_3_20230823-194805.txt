@@ -1,0 +1,27 @@
+px to 5m: 760.6290088064517, ratio = 0.006573506850397144
+
+Summary:
+perf_offset: 15
+step_offset: 7
+ratio: 0.006573506850397144
+start frame 2224
+five meters 242
+ten meters 423
+0 start: frame 2239 (177, 536), end: frame 2275 (330, 536), step length: 153 --> 1.005746548110763, 
+contact frames: 12, flight frames: 24, contact time: 0.05, flight time: 0.1, step rate: 6.666666666666666
+touch down dist: 90 --> 0.5916156165357429, toe off dist: 98 --> 0.6442036713389201, contact length: 11 --> 0.07230857535436859, flight length: 63 --> 0.41413093157502007
+1 start: frame 2276 (330, 539), end: frame 2345 (504, 536), step length: 174 --> 1.1437901919691031, 
+contact frames: 22, flight frames: 19, contact time: 0.09166666666666666, flight time: 0.07916666666666666, step rate: 5.853658536585366
+touch down dist: 13 --> 0.08545558905516287, toe off dist: 7 --> 0.04601454795278001, contact length: 127 --> 0.8348353700004373, flight length: 80 --> 0.5258805480317715
+2 start: frame 2380 (677, 536), end: frame 2444 (881, 536), step length: 204 --> 1.3409953974810174, 
+contact frames: 36, flight frames: 28, contact time: 0.15, flight time: 0.11666666666666667, step rate: 3.75
+touch down dist: 13 --> 0.08545558905516287, toe off dist: 12 --> 0.07888208220476572, contact length: 7 --> 0.04601454795278001, flight length: 233 --> 1.5316270961425344
+3 start: frame 2446 (884, 536), end: frame 2495 (1092, 536), step length: 208 --> 1.367289424882606, 
+contact frames: 14, flight frames: 35, contact time: 0.058333333333333334, flight time: 0.14583333333333334, step rate: 4.8979591836734695
+touch down dist: 27 --> 0.1774846849607229, toe off dist: 47 --> 0.30895482196866575, contact length: 19 --> 0.12489663015754573, flight length: 184 --> 1.2095252604730744
+4 start: frame 2496 (1090, 539), end: frame 2546 (1328, 536), step length: 238 --> 1.5644946303945202, 
+contact frames: 15, flight frames: 35, contact time: 0.0625, flight time: 0.14583333333333334, step rate: 4.8
+touch down dist: 30 --> 0.1972052055119143, toe off dist: 93 --> 0.6113361370869344, contact length: 65 --> 0.42727794527581436, flight length: 156 --> 1.0254670686619545
+5 start: frame 2547 (1328, 536), end: frame 2597 (1581, 533), step length: 253 --> 1.6630972331504774, 
+contact frames: 13, flight frames: 36, contact time: 0.05416666666666667, flight time: 0.15, step rate: 4.8979591836734695
+touch down dist: 19 --> 0.12489663015754573, toe off dist: 69 --> 0.45357197267740296, contact length: 50 --> 0.3286753425198572, flight length: 188 --> 1.235819287874663
