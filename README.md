@@ -3,9 +3,9 @@
 In this project, a computer vision-based software is implemented and tested to analyse rug-by players’ through videos for high-performance coaching. Rugby players’ movements in their training videos of a single 2D view is used for the analysis. The movement to be analysed are sprinting and kicking of the ball. Human pose estimation algorithms, in particular the OpenPose model is explored and applied in videos to extract the player’s skeletal joint points for calculations. Other deep learning models such as YOLOv8 is used to identify the location of the ball. While the system is not designed to run in real-time, performance, spatiotemporal, linear kinematic variables and angular kinematic variables computation methods are evaluated against manually annotated ground truth values. The purpose of this project is to provide coaches with data-driven insights op-timising players’ performance with simple equipment setup.
 
 
-![Sprinting video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/result_img/s2.png "Sprinting video")
+![Sprinting video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/sample/s2.png "Sprinting video")
 
-![Kicking video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/result_img/p2.png "Kicking video")
+![Kicking video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/sample/p2.png "Kicking video")
 
 ## Installation
 install and run openpose as instructed on their [official repo](https://github.com/CMU-Perceptual-Computing-Lab/openpose#quick-start-overview) and ***instructions.txt***. Do not just clone or download zip, download from the [release tab](https://github.com/CMU-Perceptual-Computing-Lab/openpose/releases/tag/v1.7.0) 
@@ -80,14 +80,27 @@ The video format is stored in output_video\
 Numerical results are stored in logs\
 
 ## File structure
-frames\ extracted frames from video input
-
-output\ keypoints extracted from openpose
-
-logs\ output results and debug logs
-
-output_frames\ frames with keypoints drawn
-
-output_mask_yolo\ yolo mask data
-
-output_video\ final video output with keypoints drawn
+```bash
+.
+├──bin (openpose directory)
+│   ├──python
+│   └──openpose
+├──config   coordinates of marker lines drawn on frame
+├──examples (openpose directory)
+│   └──media   put your video here
+├──frames    extracted frames from video input
+├──include  (openpose directory)
+├──lib (openpose directory)
+├──logs   output results and debug logs
+├──models  (openpose directory)
+├──output   keypoint JSON files
+├──output_frames   frames with keypoints drawn
+├──output_mask_yolo   yolo mask data
+├──output_video   final video output with keypoints drawn
+├──python (openpose directory)
+└──yolov8
+    ├──output_mask_yolo
+    └──runs (yolov8 generated directory)
+        ├──segment
+        └──predict
+```
