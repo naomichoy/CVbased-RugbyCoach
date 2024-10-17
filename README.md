@@ -3,9 +3,9 @@
 In this project, a computer vision-based software is implemented and tested to analyse rug-by players’ through videos for high-performance coaching. Rugby players’ movements in their training videos of a single 2D view is used for the analysis. The movement to be analysed are sprinting and kicking of the ball. Human pose estimation algorithms, in particular the OpenPose model is explored and applied in videos to extract the player’s skeletal joint points for calculations. Other deep learning models such as YOLOv8 is used to identify the location of the ball. While the system is not designed to run in real-time, performance, spatiotemporal, linear kinematic variables and angular kinematic variables computation methods are evaluated against manually annotated ground truth values. The purpose of this project is to provide coaches with data-driven insights op-timising players’ performance with simple equipment setup.
 
 
-[Sprinting video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/s2.png?raw=true)
+[Sprinting video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/result_img/s2.png?raw=true)
 
-[Kicking video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/p2.png?raw=true)
+[Kicking video](https://github.com/naomichoy/CVbased-RugbyCoach/blob/main/result_img/p2.png?raw=true)
 
 ## Installation
 install and run openpose as instructed on their [official repo](https://github.com/CMU-Perceptual-Computing-Lab/openpose#quick-start-overview) and ***instructions.txt***. Do not just clone or download zip, download from the [release tab](https://github.com/CMU-Perceptual-Computing-Lab/openpose/releases/tag/v1.7.0) 
