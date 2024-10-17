@@ -36,7 +36,9 @@ Draw config lines on the frame with
 python draw_lines.py
 ```
 The coordinates of the lines will be saved in the config\ directory   
+
 Edit the config json file in config\ and add direction key  
+
 ~~initial test program for correct loading: map_keypoints.py~~  
 
 ## Running the detection
